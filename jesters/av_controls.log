@@ -1,0 +1,60 @@
+[2026-01-02 19:20:15] [info] Channel updated for 192.168.8.70 to 7 - Result: Success
+[2026-01-02 19:20:27] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-01-02 19:20:39] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-01-02 19:20:48] [error] Error sending remote command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-02-14 19:27:27] [error] Error sending remote command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-02-14 19:27:29] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-02-14 19:27:41] [error] Error sending remote command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-02-26 19:45:29] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-02-27 14:15:30] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-02-27 14:33:00] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-02-27 14:33:03] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-02-27 14:33:04] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 13:01:54] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 13:02:00] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 13:02:04] [error] Error sending remote command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:16] [error] Error sending power command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-03-01 20:43:16] [error] Error sending power command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-03-01 20:43:16] [error] Error sending power command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-03-01 20:43:17] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:17] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:17] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:19] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:19] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:19] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1000 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:20] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:21] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:21] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:21] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:23] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:23] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:23] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-01 20:43:25] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-06 21:45:11] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-06 21:45:11] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-07 23:08:54] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 12:17:33] [info] Channel updated for 192.168.8.70 to 2 - Result: Success
+[2026-03-10 12:17:39] [info] Channel updated for 192.168.8.70 to 3 - Result: Success
+[2026-03-10 12:18:08] [info] Channel updated for 192.168.8.70 to 7 - Result: Success
+[2026-03-10 12:18:42] [info] Channel updated for 192.168.8.70 to 10 - Result: Success
+[2026-03-10 12:18:44] [info] Channel updated for 192.168.8.70 to 1 - Result: Success
+[2026-03-10 12:20:20] [info] Channel updated for 192.168.8.70 to 7 - Result: Success
+[2026-03-10 12:24:00] [error] Error sending power command: cURL error: Connection timed out after 1001 milliseconds
+[2026-03-10 12:24:31] [error] Error sending power command: cURL error: Connection timed out after 1001 milliseconds
+[2026-03-10 12:26:27] [info] Channel updated for 192.168.8.70 to 4 - Result: Success
+[2026-03-10 12:26:44] [info] Channel updated for 192.168.8.70 to 2 - Result: Success
+[2026-03-10 12:27:21] [info] Channel updated for 192.168.8.70 to 3 - Result: Success
+[2026-03-10 12:27:24] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 12:27:25] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 12:27:29] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 12:27:41] [info] Channel updated for 192.168.8.70 to 2 - Result: Success
+[2026-03-10 13:04:03] [info] Channel updated for 192.168.8.70 to 4 - Result: Success
+[2026-03-10 13:37:28] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 13:37:28] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 13:37:28] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
+[2026-03-10 13:37:28] [error] Error sending power command: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
