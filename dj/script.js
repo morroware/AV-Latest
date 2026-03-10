@@ -141,10 +141,11 @@ function initializeReceiverControls() {
     // Global power control buttons
     $('#power-all-on').on('click', function() {
         sendPowerCommandToAll('cec_tv_on.sh');
-        setTimeout(() => sendPowerCommandToAll('cec_tv_on.sh'), 30000);
+        // Schedule a repeat pass (skips toggle-only displays like Roku TVs)
+        setTimeout(() => sendPowerCommandToAll('cec_tv_on.sh', { repeatPass: true }), 30000);
         showResponseMessage('Powering on devices... The command will repeat in 30 seconds.', true);
     });
-    
+
     $('#power-all-off').on('click', function() {
         sendPowerCommandToAll('cec_tv_off.sh');
         showResponseMessage('Powering off devices.', true);
@@ -160,7 +161,14 @@ function updateVolumeLabel(slider) {
 }
 
 /**
- * Send a power command to a specific device
+ * Helper to wait a given number of milliseconds
+ */
+function waitMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Send a single power command to a device
  */
 function sendPowerCommand(deviceIp, command) {
     return $.ajax({
@@ -168,39 +176,100 @@ function sendPowerCommand(deviceIp, command) {
         type: 'POST',
         data: { receiver_ip: deviceIp, power_command: command },
         dataType: 'json'
-    }).then(() => {
-        if (command === 'cec_tv_on.sh') {
-            setTimeout(() => {
-                $.ajax({
-                    url: '',
-                    type: 'POST',
-                    data: { receiver_ip: deviceIp, power_command: command },
-                    dataType: 'json'
-                });
-            }, 30000);
-        }
     });
+}
+
+/**
+ * Send a configured power-on sequence for a receiver element.
+ * Reads CEC follow-up settings from data attributes for displays
+ * that need input selection after power-on (e.g. Roku TVs).
+ */
+function sendConfiguredPowerOn(receiverElement, deviceIp) {
+    const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
+    const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
+    const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
+    const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
+
+    return sendPowerCommand(deviceIp, powerOnCommand)
+        .catch(function(error) {
+            console.warn('Power-on request failed, continuing with follow-up:', error);
+            return null;
+        })
+        .then(function(response) {
+            if (!followupCommand) {
+                return response;
+            }
+
+            return waitMs(Math.max(0, followupDelayMs))
+                .then(() => sendPowerCommand(deviceIp, followupCommand)
+                    .catch(function(error) {
+                        if (!followupFallbackCommand) {
+                            throw error;
+                        }
+                        console.warn('Follow-up failed, trying fallback:', error);
+                        return sendPowerCommand(deviceIp, followupFallbackCommand);
+                    }))
+                .catch(function(error) {
+                    console.warn('Power-on follow-up sequence failed:', error);
+                    return response;
+                })
+                .then(() => response);
+        });
+}
+
+/**
+ * Send a configured power-off sequence for a receiver element.
+ * For displays like Roku TVs that only accept CEC Standby when on
+ * the correct HDMI input: switches input first, waits, then sends standby.
+ */
+function sendConfiguredPowerOff(receiverElement, deviceIp) {
+    const powerOffCommand = receiverElement.dataset.powerOffCommand || 'cec_tv_off.sh';
+    const preCommand = receiverElement.dataset.powerOffPreCommand;
+    const preDelayMs = parseInt(receiverElement.dataset.powerOffPreDelayMs, 10) || 3000;
+
+    if (!preCommand) {
+        return sendPowerCommand(deviceIp, powerOffCommand);
+    }
+
+    return sendPowerCommand(deviceIp, preCommand)
+        .catch(function(error) {
+            console.warn('Power-off pre-command failed, continuing with standby:', error);
+            return null;
+        })
+        .then(function() {
+            return waitMs(Math.max(0, preDelayMs));
+        })
+        .then(function() {
+            return sendPowerCommand(deviceIp, powerOffCommand);
+        });
 }
 
 /**
  * Send a power command to all receiver devices
  */
-function sendPowerCommandToAll(command) {
+function sendPowerCommandToAll(command, options) {
+    options = options || {};
     const receivers = $('.receiver');
     const promises = [];
-    
+    const isPowerOn = command === 'cec_tv_on.sh';
+
     receivers.each(function() {
         const ip = $(this).data('ip');
-        if (ip) promises.push(sendPowerCommand(ip, command));
+        if (!ip) return;
+
+        // Skip repeat pass for toggle-only displays (e.g. Roku TVs)
+        if (options.repeatPass && this.dataset.powerOnRepeat === '0') {
+            return;
+        }
+
+        if (isPowerOn) {
+            promises.push(sendConfiguredPowerOn(this, ip));
+        } else {
+            promises.push(sendConfiguredPowerOff(this, ip));
+        }
     });
-    
+
     Promise.all(promises)
-        .then(() => {
-            const msg = command === 'cec_tv_on.sh'
-                ? 'All devices are powering on. The command will repeat in 30 seconds.'
-                : 'All devices are powering off.';
-            showResponseMessage(msg, true);
-        })
         .catch(() => {
             // intentionally silenced
         });

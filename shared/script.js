@@ -329,6 +329,30 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
         });
 }
 
+function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = true) {
+    const powerOffCommand = receiverElement.dataset.powerOffCommand || 'cec_tv_off.sh';
+    const preCommand = receiverElement.dataset.powerOffPreCommand;
+    const preDelayMs = parseInt(receiverElement.dataset.powerOffPreDelayMs, 10) || 3000;
+
+    if (!preCommand) {
+        return sendPowerCommand(deviceIp, powerOffCommand, showNotification);
+    }
+
+    // For displays like Roku TVs that only accept CEC Standby when on the
+    // correct HDMI input: switch input first, wait, then send standby.
+    return sendPowerCommand(deviceIp, preCommand, false)
+        .catch(function(error) {
+            console.warn('Power-off pre-command failed, continuing with standby:', error);
+            return null;
+        })
+        .then(function() {
+            return waitMs(Math.max(0, preDelayMs));
+        })
+        .then(function() {
+            return sendPowerCommand(deviceIp, powerOffCommand, showNotification);
+        });
+}
+
 function resolvePowerCommand(receiverElement, fallbackCommand) {
     const isPowerOn = fallbackCommand === 'cec_tv_on.sh';
     const command = isPowerOn
@@ -360,7 +384,7 @@ function sendPowerCommandToAll(command, showNotification = true, options = {}) {
             if (isPowerOn) {
                 promises.push(sendConfiguredPowerOn(this, deviceIp, false, { repeatPass: options.repeatPass === true }));
             } else {
-                promises.push(sendPowerCommand(deviceIp, powerCommand, false)); // Don't show individual notifications
+                promises.push(sendConfiguredPowerOff(this, deviceIp, false));
             }
         }
     });
@@ -596,7 +620,7 @@ function loadReceiverStatus(receiverElement, ip, transmitters) {
             if (showPower) {
                 html += '<div class="power-buttons">';
                 html += `<button type="button" class="power-on" onclick="sendConfiguredPowerOn(this.closest('.receiver'), '${ip}', true, { repeatPass: true })">Power On</button>`;
-                html += `<button type="button" class="power-off" onclick="sendPowerCommand('${ip}', '${powerOffCommand}')">Power Off</button>`;
+                html += `<button type="button" class="power-off" onclick="sendConfiguredPowerOff(this.closest('.receiver'), '${ip}')">Power Off</button>`;
                 html += '</div>';
             }
 

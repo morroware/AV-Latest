@@ -30,7 +30,7 @@ function generateReceiverForms() {
     $html = '';
     foreach (RECEIVERS as $receiverName => $settings) {
         try {
-            $html .= generateReceiverForm($receiverName, $settings['ip'], MIN_VOLUME, MAX_VOLUME, VOLUME_STEP, $settings['show_power']);
+            $html .= generateReceiverForm($receiverName, $settings, MIN_VOLUME, MAX_VOLUME, VOLUME_STEP);
         } catch (Exception $e) {
             $html .= "<div class='receiver'><p class='warning'>Error generating form for " . htmlspecialchars($receiverName) . ": " . htmlspecialchars($e->getMessage()) . "</p></div>";
             logMessage("Error generating form for {$receiverName}: " . $e->getMessage(), 'error');
@@ -43,20 +43,43 @@ function generateReceiverForms() {
  * Function to generate a single receiver form
  * Updated to remove form tags and update button for instant controls
  */
-function generateReceiverForm($receiverName, $deviceIp, $minVolume, $maxVolume, $volumeStep, $showPower = true) {
+function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, $volumeStep) {
+    $deviceIp = $settings['ip'] ?? '';
+    $showPower = isset($settings['show_power']) ? (bool)$settings['show_power'] : true;
+    $powerOnCommand = $settings['power_on_command'] ?? 'cec_tv_on.sh';
+    $powerOffCommand = $settings['power_off_command'] ?? 'cec_tv_off.sh';
+    $powerOnRepeat = isset($settings['power_on_repeat']) ? (bool)$settings['power_on_repeat'] : true;
+    $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? '';
+    $powerOnFollowupFallbackCommand = $settings['power_on_followup_fallback_command'] ?? '';
+    $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 5000;
+    $powerOffPreCommand = $settings['power_off_pre_command'] ?? '';
+    $powerOffPreDelayMs = isset($settings['power_off_pre_delay_ms']) ? (int)$settings['power_off_pre_delay_ms'] : 3000;
+
     try {
         $currentChannel = getCurrentChannel($deviceIp);
         if ($currentChannel === null) {
             throw new Exception("Unable to get current channel");
         }
         $supportsVolume = supportsVolumeControl($deviceIp);
-        
-        $html = "<div class='receiver' data-ip='" . htmlspecialchars($deviceIp) . "'>";
-        $html .= "<button type='button' class='receiver-title'>" . htmlspecialchars($receiverName) . "</button>";
-        
+
+        $escapedIp = htmlspecialchars($deviceIp);
+        $escapedName = htmlspecialchars($receiverName);
+
+        $html = "<div class='receiver' data-ip='" . $escapedIp . "'";
+        $html .= " data-power-on-command='" . htmlspecialchars($powerOnCommand) . "'";
+        $html .= " data-power-off-command='" . htmlspecialchars($powerOffCommand) . "'";
+        $html .= " data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "'";
+        $html .= " data-power-on-followup-command='" . htmlspecialchars($powerOnFollowupCommand) . "'";
+        $html .= " data-power-on-followup-fallback-command='" . htmlspecialchars($powerOnFollowupFallbackCommand) . "'";
+        $html .= " data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "'";
+        $html .= " data-power-off-pre-command='" . htmlspecialchars($powerOffPreCommand) . "'";
+        $html .= " data-power-off-pre-delay-ms='" . max(0, $powerOffPreDelayMs) . "'";
+        $html .= ">";
+        $html .= "<button type='button' class='receiver-title'>" . $escapedName . "</button>";
+
         // Generate channel selection dropdown
-        $html .= "<label for='channel_" . htmlspecialchars($receiverName) . "'>Channel:</label>";
-        $html .= "<select id='channel_" . htmlspecialchars($receiverName) . "' class='channel-select' data-ip='" . htmlspecialchars($deviceIp) . "'>";
+        $html .= "<label for='channel_" . $escapedName . "'>Channel:</label>";
+        $html .= "<select id='channel_" . $escapedName . "' class='channel-select' data-ip='" . $escapedIp . "'>";
         if (defined('TRANSMITTERS')) {
             foreach (TRANSMITTERS as $transmitterName => $channelNumber) {
                 $selected = ($channelNumber == $currentChannel) ? ' selected' : '';
@@ -64,28 +87,28 @@ function generateReceiverForm($receiverName, $deviceIp, $minVolume, $maxVolume, 
             }
         }
         $html .= "</select>";
-        
+
         // Generate volume control if supported
         if ($supportsVolume) {
             $currentVolume = getCurrentVolume($deviceIp);
             if ($currentVolume === null) {
                 $currentVolume = $minVolume;
             }
-            $html .= "<label for='volume_" . htmlspecialchars($receiverName) . "'>Volume:</label>";
-            $html .= "<input type='range' id='volume_" . htmlspecialchars($receiverName) . "' class='volume-slider' data-ip='" . htmlspecialchars($deviceIp) . "' min='$minVolume' max='$maxVolume' step='$volumeStep' value='$currentVolume'>";
+            $html .= "<label for='volume_" . $escapedName . "'>Volume:</label>";
+            $html .= "<input type='range' id='volume_" . $escapedName . "' class='volume-slider' data-ip='" . $escapedIp . "' min='$minVolume' max='$maxVolume' step='$volumeStep' value='$currentVolume'>";
             $html .= "<span class='volume-label'>$currentVolume</span>";
         }
-        
+
         // Add power buttons if enabled
         if ($showPower) {
             $html .= "<div class='power-buttons'>";
-            $html .= "<button type='button' class='power-on' onclick='sendPowerCommand(\"" . htmlspecialchars($deviceIp) . "\", \"cec_tv_on.sh\")'>Power On</button>";
-            $html .= "<button type='button' class='power-off' onclick='sendPowerCommand(\"" . htmlspecialchars($deviceIp) . "\", \"cec_tv_off.sh\")'>Power Off</button>";
+            $html .= "<button type='button' class='power-on' onclick='sendConfiguredPowerOn(this.closest(\".receiver\"), \"" . $escapedIp . "\")'>Power On</button>";
+            $html .= "<button type='button' class='power-off' onclick='sendConfiguredPowerOff(this.closest(\".receiver\"), \"" . $escapedIp . "\")'>Power Off</button>";
             $html .= "</div>";
         }
-        
+
         $html .= "</div>";
-        
+
         return $html;
     } catch (Exception $e) {
         // Simple error card when device is unreachable
