@@ -23,7 +23,14 @@ const RECEIVERS = [
     ],
     'Billiards TV' => [
         'ip' => '192.168.8.54',
-        'show_power' => true
+        'show_power' => true,
+        'power_on_command' => 'cec_power_on_tv',
+        'power_on_repeat' => false,
+        'power_on_followup_command' => 'cec_watch_me.sh',
+        'power_on_followup_fallback_command' => 'cec_power_on_tv',
+        'power_on_followup_delay_ms' => 7000,
+        'power_off_pre_command' => 'cec_watch_me.sh',
+        'power_off_pre_delay_ms' => 3000
     ],
     'NeoVerse 1' => [
         'ip' => '192.168.8.50',
@@ -39,7 +46,14 @@ const RECEIVERS = [
     ],
     'Dining Area TV' => [
         'ip' => '192.168.8.70',
-        'show_power' => true
+        'show_power' => true,
+        'power_on_command' => 'cec_power_on_tv',
+        'power_on_repeat' => false,
+        'power_on_followup_command' => 'cec_watch_me.sh',
+        'power_on_followup_fallback_command' => 'cec_power_on_tv',
+        'power_on_followup_delay_ms' => 7000,
+        'power_off_pre_command' => 'cec_watch_me.sh',
+        'power_off_pre_delay_ms' => 3000
     ],
     'Rink Video Display' => [
         'ip' => '192.168.8.13',
