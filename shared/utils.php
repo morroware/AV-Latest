@@ -45,7 +45,7 @@ function generateReceiverForms() {
     $html = '';
     foreach (RECEIVERS as $receiverName => $settings) {
         try {
-            $html .= generateReceiverForm($receiverName, $settings['ip'], MIN_VOLUME, MAX_VOLUME, VOLUME_STEP, $settings['show_power']);
+            $html .= generateReceiverForm($receiverName, $settings, MIN_VOLUME, MAX_VOLUME, VOLUME_STEP);
         } catch (Exception $e) {
             $html .= "<div class='receiver'><p class='warning'>Error generating form for " . htmlspecialchars($receiverName) . ": " . htmlspecialchars($e->getMessage()) . "</p></div>";
             logMessage("Error generating form for {$receiverName}: " . $e->getMessage(), 'error');
@@ -61,18 +61,28 @@ function generateReceiverForms() {
  * The channel/volume status is fetched asynchronously via JavaScript after page load.
  *
  * @param string $receiverName Display name for the receiver
- * @param string $deviceIp IP address of the device
+ * @param array $settings Receiver settings from RECEIVERS config
  * @param int $minVolume Minimum volume level
  * @param int $maxVolume Maximum volume level
  * @param int $volumeStep Volume adjustment step
- * @param bool $showPower Whether to show power controls
  * @return string HTML for the receiver form
  */
-function generateReceiverForm($receiverName, $deviceIp, $minVolume, $maxVolume, $volumeStep, $showPower = true) {
+function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, $volumeStep) {
+    $deviceIp = $settings['ip'] ?? '';
+    $showPower = isset($settings['show_power']) ? (bool)$settings['show_power'] : true;
+    $powerOnCommand = $settings['power_on_command'] ?? 'cec_tv_on.sh';
+    $powerOffCommand = $settings['power_off_command'] ?? 'cec_tv_off.sh';
+    $powerOnRepeat = isset($settings['power_on_repeat']) ? (bool)$settings['power_on_repeat'] : true;
+    $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? '';
+    $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 1500;
+
     $escapedName = htmlspecialchars($receiverName);
     $escapedIp = htmlspecialchars($deviceIp);
+    $escapedPowerOn = htmlspecialchars($powerOnCommand);
+    $escapedPowerOff = htmlspecialchars($powerOffCommand);
+    $escapedPowerOnFollowup = htmlspecialchars($powerOnFollowupCommand);
 
-    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "'>";
+    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "' data-power-on-command='" . $escapedPowerOn . "' data-power-off-command='" . $escapedPowerOff . "' data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "' data-power-on-followup-command='" . $escapedPowerOnFollowup . "' data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "'>";
     $html .= "<button type='button' class='receiver-title'>" . $escapedName . "</button>";
 
     // Loading placeholder
