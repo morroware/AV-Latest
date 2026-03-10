@@ -1,0 +1,6 @@
+; IR Transmitter Devices
+; Format: Device Name, http://IP_ADDRESS
+;
+; Example:
+; Cable Box 1, http://192.168.8.30
+; Cable Box 2, http://192.168.8.31

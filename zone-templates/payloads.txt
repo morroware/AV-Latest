@@ -1,0 +1,11 @@
+; IR Command Payloads
+; Format: command=sendir,... (Global Cache format)
+;
+; Common commands: power, guide, up, down, left, right, select,
+;                  channel_up, channel_down, 0-9, last, exit
+;
+; Example (cable box IR codes):
+; power=sendir,1:1,1,58000,1,1,192,192,48,145,48,145,48,48,48,145,48,145,...
+; guide=sendir,1:1,1,58000,1,1,192,192,48,145,48,145,48,48,48,145,48,145,...
+;
+; You can capture IR codes using a learning remote or IR capture device

@@ -1,0 +1,721 @@
+/* Enhanced theme variables */
+:root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --primary-color: #bb86fc;
+    --secondary-color: #03dac6;
+    --surface-color: #1e1e1e;
+    --header-bg: #1a1a1a;
+    --error-color: #cf6679;
+    --success-color: #4CAF50;
+    --warning-color: #ff9800;
+    --button-hover-opacity: 0.85;
+}
+
+/* Base styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.content-wrapper {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
+
+/* Enhanced Header Styles */
+header {
+    background-color: var(--header-bg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.logo-title-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    max-width: 180px;
+    height: auto;
+}
+
+h1 {
+    color: var(--primary-color);
+    font-size: 2.5em;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+h2 {
+    color: var(--primary-color);
+    font-size: 1.8em;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+}
+
+.header-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+/* Main container layout */
+.main-container {
+    display: flex;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Enhanced button styles */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1em;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    min-width: 160px;
+}
+/* Footer styling */
+footer {
+    background-color: var(--surface-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 0;
+    margin-top: 2rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 10;
+}
+
+#wled-footer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#wled-footer-controls .button {
+    padding: 0.75rem 1.5rem;
+    min-width: 140px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#wled-footer-controls .power-on {
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+}
+
+#wled-footer-controls .power-off {
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+}
+
+#wled-footer-controls .button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+#wled-footer-controls .button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    #wled-footer-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    #wled-footer-controls .button {
+        width: 80%;
+    }
+}
+/* Add these additional styles to your CSS file */
+
+/* Button click animation */
+#wled-footer-controls .button.clicked {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+/* Subtle glow effect on LED buttons */
+#wled-footer-controls .power-on {
+    box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+}
+
+#wled-footer-controls .power-on:hover {
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+}
+
+#wled-footer-controls .power-off {
+    box-shadow: 0 2px 10px rgba(207, 102, 121, 0.3);
+}
+
+#wled-footer-controls .power-off:hover {
+    box-shadow: 0 4px 15px rgba(207, 102, 121, 0.5);
+}
+.home-button {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+.home-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+#power-all-on {
+    background-color: var(--success-color);
+    color: white;
+}
+
+#power-all-off {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.button:hover {
+    opacity: var(--button-hover-opacity);
+    transform: translateY(-1px);
+}
+
+/* Enhanced section styles */
+.section {
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#av-controls {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#remote-control {
+    flex: 0 0 320px;
+    align-self: flex-start;
+}
+
+/* Receivers Grid */
+.receivers-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 0 auto;
+}
+
+/* Receiver Card Styles */
+.receiver {
+    background-color: var(--surface-color);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.receiver:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.receiver form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.receiver-title {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.2em;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1rem;
+    cursor: default;
+}
+
+/* Form Controls */
+.receiver select,
+.receiver input[type="range"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.receiver select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23bb86fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 20px;
+    padding-right: 2.5rem;
+}
+
+/* Custom Range Input */
+input[type="range"] {
+    -webkit-appearance: none;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+input[type="range"]:hover {
+    opacity: 1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Update Button */
+.update-button {
+    background-color: var(--secondary-color) !important;
+    color: var(--bg-color) !important;
+    padding: 0.75rem !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+    margin-top: 1rem !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.update-button:hover {
+    opacity: 0.85;
+}
+
+/* Power Buttons */
+.power-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.power-on,
+.power-off {
+    flex: 1;
+    padding: 0.75rem;
+    font-size: 1em;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+    color: white;
+}
+
+.power-on {
+    background-color: var(--success-color);
+}
+
+.power-off {
+    background-color: var(--error-color);
+}
+
+/* Remote Control Styles */
+#transmitter-select {
+    margin-bottom: 1.5rem;
+}
+
+.remote-container {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.button-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.navigation-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.nav-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.number-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* Remote Control Buttons */
+.remote-container button {
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+}
+
+/* Power and Guide buttons */
+.remote-container button[onclick*="power"],
+.remote-container button[onclick*="guide"] {
+    background-color: #9333ea;
+}
+
+/* Navigation buttons */
+.remote-container button[onclick*="up"],
+.remote-container button[onclick*="down"],
+.remote-container button[onclick*="left"],
+.remote-container button[onclick*="right"],
+.remote-container button[onclick*="select"] {
+    background-color: #2563eb;
+}
+
+/* Channel buttons */
+.remote-container button[onclick*="channel"] {
+    background-color: #dc2626;
+}
+
+/* Number pad */
+.remote-container button[onclick^="sendCommand('0')"],
+.remote-container button[onclick^="sendCommand('1')"],
+.remote-container button[onclick^="sendCommand('2')"],
+.remote-container button[onclick^="sendCommand('3')"],
+.remote-container button[onclick^="sendCommand('4')"],
+.remote-container button[onclick^="sendCommand('5')"],
+.remote-container button[onclick^="sendCommand('6')"],
+.remote-container button[onclick^="sendCommand('7')"],
+.remote-container button[onclick^="sendCommand('8')"],
+.remote-container button[onclick^="sendCommand('9')"] {
+    background-color: #2563eb;
+}
+
+/* Last and Exit buttons */
+.remote-container button[onclick*="last"],
+.remote-container button[onclick*="exit"] {
+    background-color: #059669;
+}
+
+.remote-container button:hover {
+    opacity: 0.85;
+}
+
+/* Message Styles */
+#response-message {
+    max-width: 800px;
+    margin: 1rem auto;
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+    display: none;
+}
+
+#response-message.success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+#response-message.error {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.error-message {
+    background-color: var(--error-color);
+    color: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    text-align: center;
+    display: none;
+}
+
+.global-error {
+    background-color: var(--error-color);
+    color: white;
+    padding: 1rem;
+    margin: 1rem auto;
+    border-radius: 6px;
+    text-align: center;
+    max-width: 800px;
+}
+
+/* Media Queries */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column;
+        padding: 0 1rem;
+    }
+
+    #remote-control {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .header-buttons {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 0;
+    }
+
+    header {
+        padding: 1rem;
+    }
+
+    .logo-title-group {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    .header-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .button {
+        width: 100%;
+    }
+
+    .power-buttons {
+        flex-direction: column;
+    }
+
+    .section {
+        padding: 1rem;
+    }
+
+    .receiver {
+        padding: 1rem;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    :root {
+        --primary-color: #ffffff;
+        --secondary-color: #ffffff;
+        --text-color: #ffffff;
+        --bg-color: #000000;
+        --surface-color: #000000;
+        --header-bg: #000000;
+    }
+
+    .receiver,
+    .remote-container,
+    .button,
+    select,
+    input[type="range"] {
+        border: 2px solid white !important;
+    }
+}
+
+/* Focus States */
+button:focus,
+select:focus,
+input:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.button:focus {
+    outline-color: white;
+}
+/* Add these styles to your existing styles.css file to support the new control layout */
+
+/* Adjusted styles for controls without update button */
+.receiver select,
+.receiver input[type="range"] {
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+/* Add some breathing room between controls */
+.receiver label {
+    margin-top: 1rem;
+    display: block;
+    font-weight: 500;
+}
+
+/* Make volume labels more prominent */
+.volume-label {
+    display: inline-block;
+    font-weight: bold;
+    margin-left: 1rem;
+    color: var(--secondary-color);
+}
+
+/* Give the receivers a bit more padding since we removed the update button */
+.receiver {
+    padding: 2rem;
+}
+
+/* Add transition for smoother visual feedback */
+.channel-select, .volume-slider {
+    transition: box-shadow 0.3s ease;
+}
+
+.channel-select:focus, .volume-slider:focus {
+    box-shadow: 0 0 0 2px var(--primary-color);
+    outline: none;
+}
+
+/* Make dropdowns appear more interactive */
+.channel-select {
+    cursor: pointer;
+}
+
+/* Add these styles to styles.css file */
+
+/* Layout for remote selectors */
+.remote-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#transmitter-select,
+#favorite-channels-select {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#transmitter-select select,
+#favorite-channels-select select {
+    flex: 1;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23bb86fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 20px;
+    padding-right: 2.5rem;
+}
+
+#transmitter-select select:focus,
+#favorite-channels-select select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Add a subtle animation when channel is selected */
+/* Add just these minimal styles to your existing CSS */
+
+#favorite-channels-select {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#favorite-channels-select select {
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    width: 100%;
+    max-width: 300px;
+    margin-left: 0.5rem;
+}
+
+#favorite-channels-select select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
