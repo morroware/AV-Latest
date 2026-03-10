@@ -394,6 +394,11 @@ const RECEIVERS = [
     'Display Name' => [
         'ip' => '192.168.8.XX',    // Device IP address
         'show_power' => true,       // Show power on/off buttons
+        'power_on_command' => 'cec_tv_on.sh',   // Optional per-device power-on CLI command
+        'power_off_command' => 'cec_tv_off.sh', // Optional per-device power-off CLI command
+        'power_on_repeat' => true,  // Optional: include in delayed second Power All On pass
+        'power_on_followup_command' => 'cec_input_1.sh', // Optional: follow-up command after power-on (e.g., Roku input select)
+        'power_on_followup_delay_ms' => 1500, // Optional delay before follow-up command
     ],
 ];
 
