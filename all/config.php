@@ -24,7 +24,7 @@ const RECEIVERS = [
     'Billiards TV' => [
         'ip' => '192.168.8.54',
         'show_power' => true,
-        'power_on_repeat' => true,
+        'power_on_repeat' => false,
         'power_on_followup_command' => 'cec_input_1.sh',
         'power_on_followup_delay_ms' => 1500
     ],
@@ -43,7 +43,7 @@ const RECEIVERS = [
     'Dining Area TV' => [
         'ip' => '192.168.8.70',
         'show_power' => true,
-        'power_on_repeat' => true,
+        'power_on_repeat' => false,
         'power_on_followup_command' => 'cec_input_1.sh',
         'power_on_followup_delay_ms' => 1500
     ],
