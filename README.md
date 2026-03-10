@@ -20,6 +20,7 @@ A centralized, password-protected web-based audio-visual control system designed
 - [Alert & Monitoring System](#alert--monitoring-system)
 - [Troubleshooting](#troubleshooting)
 - [Maintenance](#maintenance)
+- [Quality Assurance](#quality-assurance)
 
 ---
 
@@ -769,6 +770,21 @@ Logs written to `[zone]/av_controls.log`
 ---
 
 ## Maintenance
+
+### Quality Assurance
+
+Run the built-in health check before deployments to validate zone configuration, required files, JSON syntax, and PHP syntax:
+
+```bash
+php scripts/health_check.php
+```
+
+The script is compatible with PHP 7.4+ and returns a non-zero exit code when issues are found.
+
+Recommended pre-deploy flow:
+1. Run `php scripts/health_check.php`.
+2. Confirm `Errors: 0` in the summary.
+3. Apply or restore any zone file/config fixes before shipping.
 
 ### Backup Procedures
 
