@@ -3210,3 +3210,156 @@ a:focus-visible {
         width: 100%;
     }
 }
+
+/* ============================================ */
+/* LOW-RESOLUTION DISPLAY OPTIMIZATIONS         */
+/* For ELO touchscreens, 1024x768, 800x600 etc */
+/* ============================================ */
+
+/* 1024x768 and similar low-res monitors */
+@media (max-height: 768px) {
+    header {
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .logo-title-group {
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .logo {
+        max-width: 100px;
+    }
+
+    h1 {
+        font-size: 1.4rem;
+    }
+
+    h2 {
+        font-size: 1.15rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .main-container {
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    .section {
+        padding: 1rem;
+    }
+
+    .receivers-wrapper {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .receiver {
+        padding: 0.875rem;
+    }
+
+    .receiver-title {
+        padding: 0.625rem 0.75rem;
+        font-size: 0.95rem;
+        margin-bottom: 0.375rem;
+    }
+
+    .button {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.85rem;
+        min-width: 100px;
+    }
+
+    #remote-control {
+        flex: 0 0 280px;
+        top: 80px;
+    }
+}
+
+/* 800x600 and very low-res displays */
+@media (max-height: 600px) {
+    header {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .logo-title-group {
+        gap: 0.5rem;
+        margin-bottom: 0.375rem;
+    }
+
+    .logo {
+        max-width: 70px;
+    }
+
+    h1 {
+        font-size: 1.15rem;
+    }
+
+    h2 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .header-buttons {
+        gap: 0.375rem;
+    }
+
+    .header-buttons .button-divider {
+        height: 18px;
+    }
+
+    .main-container {
+        gap: 0.625rem;
+        padding: 0 0.625rem;
+    }
+
+    .section {
+        padding: 0.625rem;
+        border-radius: var(--radius-md);
+    }
+
+    .receivers-wrapper {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .receiver {
+        padding: 0.625rem;
+        border-radius: var(--radius-md);
+    }
+
+    .receiver-title {
+        padding: 0.5rem 0.625rem;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        border-radius: var(--radius-sm);
+    }
+
+    .receiver select,
+    .receiver input[type="range"] {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .button {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.8rem;
+        min-width: 80px;
+        border-radius: var(--radius-sm);
+    }
+
+    .btn-text {
+        font-size: 0.75rem;
+    }
+
+    #remote-control {
+        flex: 0 0 240px;
+        top: 60px;
+    }
+
+    .content-wrapper {
+        padding-bottom: 0.5rem;
+    }
+}

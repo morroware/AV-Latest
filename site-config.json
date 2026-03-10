@@ -1,0 +1,70 @@
+{
+    "_readme": "Castle Fun Center - Central Site Configuration",
+    "_instructions": "Edit this file to configure the entire AV control site. All pages read from this file.",
+
+    "site": {
+        "name": "Castle AV Controls",
+        "tagline": "Audio-Visual Control System",
+        "logo": "logo.png",
+        "password": "1313",
+        "sessionExpiresEndOfDay": true,
+        "homeUrl": "/",
+        "adminUrl": "zonemanager.php"
+    },
+
+    "network": {
+        "avSubnet": "192.168.8",
+        "wledSubnet": "192.168.6",
+        "infraSubnet": "192.168.1",
+        "apiBasePath": "/cgi-bin/api/",
+        "apiTimeout": 2,
+        "serverIp": "192.168.8.127"
+    },
+
+    "ui": {
+        "theme": "dark",
+        "primaryColor": "#6366f1",
+        "accentColor": "#22d3ee",
+        "defaultZoneColor": "#00C853",
+        "touchMinHeight": "48px",
+        "lowResBreakpoint": "1024px",
+        "compactMode": false
+    },
+
+    "deviceDirectory": {
+        "showInNav": true,
+        "groupByCategory": true,
+        "categories": [
+            {
+                "id": "av-receivers",
+                "name": "AV Receivers",
+                "icon": "monitor",
+                "description": "Video displays and audio receivers"
+            },
+            {
+                "id": "transmitters",
+                "name": "Transmitters",
+                "icon": "broadcast",
+                "description": "IR blasters and cable box controllers"
+            },
+            {
+                "id": "wled",
+                "name": "WLED Lighting",
+                "icon": "lightbulb",
+                "description": "Addressable LED controllers"
+            },
+            {
+                "id": "infrastructure",
+                "name": "Infrastructure",
+                "icon": "server",
+                "description": "Sensors, announcers, and Pi projects"
+            },
+            {
+                "id": "printers",
+                "name": "Network Printers",
+                "icon": "printer",
+                "description": "Kitchen and wristband printers"
+            }
+        ]
+    }
+}
