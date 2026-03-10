@@ -1,0 +1,3 @@
+[2025-09-26 20:20:41] [error] Error checking volume control support: cURL error: Connection timed out after 1000 milliseconds
+[2025-09-26 20:21:03] [error] Error checking volume control support: cURL error: Connection timed out after 1001 milliseconds
+[2025-09-26 20:44:52] [error] Error checking volume control support: cURL error: Operation timed out after 1001 milliseconds with 0 bytes received
