@@ -291,14 +291,16 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true) {
+function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
     const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 1500;
+    const receiverRepeatsPowerOn = receiverElement.dataset.powerOnRepeat !== '0';
+    const shouldSendFollowup = Boolean(followupCommand) && (!receiverRepeatsPowerOn || options.repeatPass);
 
     return sendPowerCommand(deviceIp, powerOnCommand, showNotification)
         .then(function(response) {
-            if (!followupCommand) {
+            if (!shouldSendFollowup) {
                 return response;
             }
 
@@ -337,7 +339,7 @@ function sendPowerCommandToAll(command, showNotification = true, options = {}) {
                        $(this).find('.volume-slider').data('ip');
         if (deviceIp) {
             if (isPowerOn) {
-                promises.push(sendConfiguredPowerOn(this, deviceIp, false));
+                promises.push(sendConfiguredPowerOn(this, deviceIp, false, { repeatPass: options.repeatPass === true }));
             } else {
                 promises.push(sendPowerCommand(deviceIp, powerCommand, false)); // Don't show individual notifications
             }
@@ -574,7 +576,7 @@ function loadReceiverStatus(receiverElement, ip, transmitters) {
             // Power buttons
             if (showPower) {
                 html += '<div class="power-buttons">';
-                html += `<button type="button" class="power-on" onclick="sendConfiguredPowerOn(this.closest('.receiver'), '${ip}')">Power On</button>`;
+                html += `<button type="button" class="power-on" onclick="sendConfiguredPowerOn(this.closest('.receiver'), '${ip}', true, { repeatPass: true })">Power On</button>`;
                 html += `<button type="button" class="power-off" onclick="sendPowerCommand('${ip}', '${powerOffCommand}')">Power Off</button>`;
                 html += '</div>';
             }
