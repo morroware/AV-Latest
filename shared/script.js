@@ -294,18 +294,37 @@ function waitMs(ms) {
 function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
     const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
-    const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 1500;
+    const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
+    const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
     const receiverRepeatsPowerOn = receiverElement.dataset.powerOnRepeat !== '0';
     const shouldSendFollowup = Boolean(followupCommand) && (!receiverRepeatsPowerOn || options.repeatPass);
 
+    // Some displays may still react to power-on even when the HTTP request itself fails/times out.
+    // Keep the sequence resilient by attempting the follow-up command regardless.
     return sendPowerCommand(deviceIp, powerOnCommand, showNotification)
+        .catch(function(error) {
+            console.warn('Power-on command request failed, continuing with follow-up if configured:', error);
+            return null;
+        })
         .then(function(response) {
             if (!shouldSendFollowup) {
                 return response;
             }
 
             return waitMs(Math.max(0, followupDelayMs))
-                .then(() => sendPowerCommand(deviceIp, followupCommand, false))
+                .then(() => sendPowerCommand(deviceIp, followupCommand, false)
+                    .catch(function(error) {
+                        if (!followupFallbackCommand) {
+                            throw error;
+                        }
+
+                        console.warn('Primary follow-up command failed, trying fallback command:', error);
+                        return sendPowerCommand(deviceIp, followupFallbackCommand, false);
+                    }))
+                .catch(function(error) {
+                    console.warn('Power-on follow-up sequence failed:', error);
+                    return response;
+                })
                 .then(() => response);
         });
 }

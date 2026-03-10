@@ -397,8 +397,9 @@ const RECEIVERS = [
         'power_on_command' => 'cec_tv_on.sh',   // Optional per-device power-on CLI command
         'power_off_command' => 'cec_tv_off.sh', // Optional per-device power-off CLI command
         'power_on_repeat' => true,  // Optional: include in delayed second Power All On pass
-        'power_on_followup_command' => 'cec_input_1.sh', // Optional: follow-up command after power-on (e.g., Roku input select)
-        'power_on_followup_delay_ms' => 1500, // Optional delay before follow-up command
+        'power_on_followup_command' => 'cec_watch_me.sh', // Optional: follow-up CEC source-select command (must exist on JAP)
+        'power_on_followup_fallback_command' => 'cec_power_on_tv', // Optional: fallback command if primary follow-up fails
+        'power_on_followup_delay_ms' => 7000, // Optional delay before follow-up command (startup buffer)
     ],
 ];
 

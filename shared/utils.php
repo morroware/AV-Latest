@@ -74,15 +74,17 @@ function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, 
     $powerOffCommand = $settings['power_off_command'] ?? 'cec_tv_off.sh';
     $powerOnRepeat = isset($settings['power_on_repeat']) ? (bool)$settings['power_on_repeat'] : true;
     $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? '';
-    $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 1500;
+    $powerOnFollowupFallbackCommand = $settings['power_on_followup_fallback_command'] ?? '';
+    $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 5000;
 
     $escapedName = htmlspecialchars($receiverName);
     $escapedIp = htmlspecialchars($deviceIp);
     $escapedPowerOn = htmlspecialchars($powerOnCommand);
     $escapedPowerOff = htmlspecialchars($powerOffCommand);
     $escapedPowerOnFollowup = htmlspecialchars($powerOnFollowupCommand);
+    $escapedPowerOnFollowupFallback = htmlspecialchars($powerOnFollowupFallbackCommand);
 
-    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "' data-power-on-command='" . $escapedPowerOn . "' data-power-off-command='" . $escapedPowerOff . "' data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "' data-power-on-followup-command='" . $escapedPowerOnFollowup . "' data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "'>";
+    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "' data-power-on-command='" . $escapedPowerOn . "' data-power-off-command='" . $escapedPowerOff . "' data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "' data-power-on-followup-command='" . $escapedPowerOnFollowup . "' data-power-on-followup-fallback-command='" . $escapedPowerOnFollowupFallback . "' data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "'>";
     $html .= "<button type='button' class='receiver-title'>" . $escapedName . "</button>";
 
     // Loading placeholder
