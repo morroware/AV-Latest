@@ -58,9 +58,9 @@ Zones are distinct areas of the facility, each with their own AV equipment. The 
 | Jesters | 3 | Arcade area and bar TVs |
 | Facility | 1 | Facility-wide audio control |
 | Outside | 1 | Outdoor area controls |
-| DJ Booth | 17 | Main entertainment hub (largest zone) |
+| DJ Booth | 24 | Main entertainment hub - all receivers |
 | Multi | 2 | Control multiple zones at once |
-| ALL | 21 | Control all zones simultaneously |
+| ALL | 24 | Control all zones simultaneously |
 
 Each zone contains one or more **receivers** (output devices like TVs or speakers) that can be controlled independently.
 

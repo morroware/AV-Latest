@@ -353,16 +353,17 @@ Just Add Power IR blasters with HTTP API:
 
 ### Input Sources
 
-| Source | Description |
-|--------|-------------|
-| Cable Box 1-3 | Cable TV receivers (Attic TX 1-3) |
-| Apple TV | Streaming device |
-| RockBot Audio | Background music system |
-| Wireless Mic TX | Microphone transmitter |
-| Mobile Video TX | Portable video source |
-| Mobile Audio TX | Portable audio source |
-| Unifi Signage | Digital signage system |
-| Trivia | Trivia system source |
+| Source | JAP Device | Channel | Description |
+|--------|------------|---------|-------------|
+| Apple TV | Apple TV TX (.10, 3G-S TX) | 1 | Streaming device |
+| RockBot Audio | RockBot Audio TX (.11, 2G/3G SX-TX) | 2 | Background music system |
+| Cable Box 2 | Attic TX 2 (.12, 3G TX) | 3 | Cable TV receiver |
+| Cable Box 1 | Attic TX 1 (.13, 3G TX) | 4 | Cable TV receiver |
+| Mobile Video TX | Mobile Video TX (.14, 3G TX) | 5 | Portable video source |
+| Wireless Mic TX | Wireless Mic TX (.15, 2G/3G SX-TX) | 6 | Microphone transmitter |
+| Cable Box 3 | Attic TX 3 (.16, 3G TX) | 7 | Cable TV receiver |
+| Unifi Signage | Office Unifi TX (.17, 3G-S TX) | 8 | Digital signage system |
+| Trivia | Spare TX 2 (.18, 3G-S TX) | 9 | Trivia system source |
 
 ### Smart Lighting (WLED)
 
@@ -386,15 +387,15 @@ WLED-compatible addressable LED controllers:
 | **Jesters** | `jesters` | 3 | Arcade and entertainment area |
 | **Facility** | `facility` | 1 | Facility-wide control |
 | **Outside** | `outside` | 1 | Outdoor displays and audio |
-| **DJ Booth** | `dj` | 17 | Main entertainment control hub (largest zone) |
+| **DJ Booth** | `dj` | 24 | Main entertainment control hub - all receivers |
 | **Multi** | `multi` | 2 | Select multiple zones for batch control |
-| **ALL** | `all` | 21 | Control all zones simultaneously |
+| **ALL** | `all` | 24 | Control all zones simultaneously |
 
 ### Special Zones
 
-- **ALL Zone**: Sends commands to all 21 receivers across all zones. Includes `audio_toggle_handler.php` for bulk audio toggling.
+- **ALL Zone**: Sends commands to all 24 receivers across all zones. Includes `audio_toggle_handler.php` for bulk audio toggling.
 - **Multi Zone**: Allows selecting specific zones for batch operations. Includes `audio_toggle_handler.php` and zone-specific `devices.php`.
-- **DJ Zone**: Central control hub with 17 receivers for main event management.
+- **DJ Zone**: Central control hub with all 24 receivers for main event management.
 
 ### Quick Links
 
