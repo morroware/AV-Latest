@@ -20,7 +20,6 @@ A centralized, password-protected web-based audio-visual control system designed
 - [Alert & Monitoring System](#alert--monitoring-system)
 - [Troubleshooting](#troubleshooting)
 - [Maintenance](#maintenance)
-- [Quality Assurance](#quality-assurance)
 
 ---
 
@@ -35,11 +34,15 @@ The Castle Fun Center AV Control System is a production-grade web application th
 - **Real-time Feedback**: Instant status updates with toast notifications and visual states
 - **Smart Lighting**: WLED-compatible addressable LED control per zone
 - **IR Remote Emulation**: Full cable box and media device control with number pad
-- **Power Management**: CEC-based display power control
+- **Power Management**: CEC-based display power control with configurable sequences
 - **Anti-Popping Audio**: Intelligent audio muting during channel changes with DSP support
 - **Persistent Settings**: Volume and configuration persistence across sessions
 - **Quick Links**: Configurable special navigation links (Dashboard, OSD, etc.)
 - **Dynamic Zone Loading**: Zones loaded from API with fallback support
+- **Device Directory**: Aggregated view of all AV, WLED, and infrastructure devices
+- **Device Status Monitoring**: IOT status checker with HTTP and ping fallback
+- **Device Reboot**: Bulk reboot capability for zone receivers
+- **LiveCode Compatibility**: Browser widget support with storage, fetch, and keyboard fallbacks
 
 ### Technology Stack
 
@@ -51,6 +54,7 @@ The Castle Fun Center AV Control System is a production-grade web application th
 | Network | HTTP API over private 192.168.8.0/24 network |
 | Lighting | WLED JSON API on 192.168.6.0/24 network |
 | Fonts | Inter (Google Fonts) |
+| Compatibility | LiveCode browser widget support via livecode-compat.js |
 
 ---
 
@@ -60,61 +64,85 @@ The Castle Fun Center AV Control System is a production-grade web application th
 AV-system/
 ├── index.html                 # Password-protected landing page with dynamic zone loading
 ├── script.js                  # Authentication, navigation logic, Ctrl+double-click handling
+├── landing.js                 # Zone loading, color utilities, LiveCode widget compat
+├── landing.css                # Landing page styles (glassmorphism, zone grid)
+├── livecode-compat.js         # LiveCode browser widget compatibility layer
 ├── logo.png                   # Castle Fun Center branding
+│
 ├── zones.json                 # Master zone configuration registry (single source of truth)
+├── site-config.json           # Site-wide config (network, UI, device directory categories)
 ├── config.ini                 # System-wide alerts & webhooks configuration
+├── devices.json               # Global device registry (receivers, transmitters, settings)
+├── DBconfigs.ini              # Infrastructure devices (sensors, WLED, printers, Pi projects)
 ├── .htaccess                  # Apache security configuration
 │
 ├── zonemanager.php            # Zone management interface (add/edit/delete/duplicate/reorder)
 ├── settings.php               # Settings entry point (?zone=X)
 ├── editini.php                # Config file editor entry point (?zone=X)
+├── edit.php                   # Configuration file editor entry point
 ├── wled.php                   # WLED control entry point (?zone=X)
+├── devices.php                # Device directory web interface (grouped by category)
+├── devices.css                # Device directory styles
+├── status.php                 # IOT device status checker (HTTP + ping, curl_multi batch)
+├── fix_permissions.sh         # File permission setup script
 │
 ├── api/
-│   └── zones.php              # REST API endpoint for zone configuration
+│   ├── zones.php              # REST API - zone configuration with directory validation
+│   ├── receiver-status.php    # REST API - receiver channel/volume/capabilities (GET ?ip=X)
+│   └── devices.php            # REST API - aggregated device directory from all sources
 │
 ├── shared/                    # Shared codebase (core functionality)
-│   ├── BaseController.php     # Base class for AJAX request handling
-│   ├── utils.php              # Utility functions - API, volume, channel, DSP control
-│   ├── zones.php              # Zone CRUD operations with atomic writes and caching
-│   ├── settings.php           # Settings management UI with backup/restore
-│   ├── editini.php            # Configuration file editor
-│   ├── wled.php               # WLED control handler
-│   ├── site-config.php        # Site-wide configuration
-│   ├── styles.css             # Material Design dark theme with glassmorphism
-│   └── script.js              # Shared JavaScript - receiver controls, remote, accessibility
+│   ├── BaseController.php     # AJAX request routing, validation, anti-popping orchestration
+│   ├── utils.php              # Device API communication, volume/channel/DSP, form generation
+│   ├── zones.php              # Zone CRUD operations with atomic writes and config caching
+│   ├── settings.php           # Settings management UI with backup/restore (up to 10 backups)
+│   ├── editini.php            # INI/TXT configuration file editor
+│   ├── wled.php               # WLED lighting control handler (bulk on/off per zone)
+│   ├── reboot.php             # Device reboot script (reads RECEIVERS from zone config)
+│   ├── api.php                # Legacy shared IR command endpoint with SSRF protection
+│   ├── site-config.php        # Site-wide PHP constants (HOME_URL, ADMIN_URL, API_BASE_PATH)
+│   ├── styles.css             # Material Design dark theme with glassmorphism effects
+│   └── script.js              # Shared JS - receiver controls, remote, WLED, accessibility
 │
 ├── zone-templates/            # Template files for new zone creation
 │   ├── README.md              # Zone template instructions
-│   ├── config.php             # Zone configuration template
+│   ├── config.php             # Zone configuration template with commented examples
 │   ├── index.php              # Zone entry point template
-│   ├── template.php           # Zone UI template
+│   ├── template.php           # Zone UI template (header, receivers, remote, WLED footer)
 │   ├── transmitters.txt       # IR blaster device list template
 │   ├── payloads.txt           # IR command codes template
 │   ├── favorites.ini          # Favorite channel mappings template
 │   └── WLEDlist.ini           # WLED device IP addresses template
 │
+├── scripts/                   # Maintenance and reference scripts
+│   ├── health_check.php       # Pre-deploy validation (zones, files, JSON/PHP syntax)
+│   └── fluxhandlerV2.sh       # IR command handler reference (runs on JAP devices)
+│
 └── [zone]/                    # Zone directories (9 total)
-    ├── index.php              # Zone entry point (handles AJAX)
-    ├── config.php             # Zone-specific configuration
+    ├── index.php              # Zone entry point (handles AJAX via BaseController)
+    ├── config.php             # Zone-specific configuration (receivers, transmitters, limits)
     ├── template.php           # Zone UI template
-    ├── transmitters.txt       # IR blaster device list
-    ├── payloads.txt           # IR command codes (sendir format)
-    ├── favorites.ini          # Favorite channel mappings
+    ├── api.php                # IR remote command handler
+    ├── transmitters.txt       # IR blaster device list (CSV: Name, URL)
+    ├── payloads.txt           # IR command codes (sendir/hex format)
+    ├── favorites.ini          # Favorite channel presets
     ├── WLEDlist.ini           # WLED device IP addresses
+    ├── settings.php           # Alias to ../settings.php with ?zone parameter
+    ├── editini.php            # Alias to ../editini.php with ?zone parameter
+    ├── wled.php               # Alias to ../wled.php with ?zone parameter
     ├── saved_volumes.json     # Persistent volume state (some zones)
     └── av_controls.log        # Zone activity log
 
 Zone Directories:
-├── bowling/                   # Bowling Lanes
-├── bowlingbar/                # Bowling Bar
-├── rink/                      # Roller Rink
-├── jesters/                   # Jesters Arcade Area
-├── facility/                  # Facility-wide Controls
-├── outside/                   # Outdoor Area
+├── bowling/                   # Bowling Lanes (4 receivers)
+├── bowlingbar/                # Bowling Bar (10 receivers)
+├── rink/                      # Roller Rink (2 receivers)
+├── jesters/                   # Jesters Arcade Area (3 receivers)
+├── facility/                  # Facility-wide Controls (1 receiver)
+├── outside/                   # Outdoor Area (1 receiver)
 ├── dj/                        # DJ Booth (17 receivers - largest zone)
-├── multi/                     # Multi-zone Selection Control
-└── all/                       # ALL Zones Simultaneous Control
+├── multi/                     # Multi-zone Selection Control (+audio_toggle_handler.php, devices.php)
+└── all/                       # ALL Zones Simultaneous Control (+audio_toggle_handler.php)
 ```
 
 ---
@@ -128,13 +156,15 @@ Zone Directories:
 | **Multi-Zone Control** | 9 independent zones with customized interfaces |
 | **Receiver Management** | Channel and volume control for all AV receivers |
 | **IR Remote Control** | Full cable box emulation (power, guide, navigation, numbers, channel up/down) |
-| **Power Management** | CEC-based TV/display power on/off via CLI commands |
-| **Volume Control** | Per-receiver volume with model-based support detection |
+| **Power Management** | CEC-based TV/display power on/off with configurable follow-up commands |
+| **Volume Control** | Per-receiver volume with model-based support detection and 300ms debounce |
 | **Anti-Popping Audio** | Mutes HDMI/stereo/DSP audio during channel changes to prevent pops |
 | **DSP Audio Control** | Advanced audio control for 3G+AVP TX and 3G+WP4 TX devices |
 | **WLED Integration** | Smart addressable LED lighting control per zone |
 | **Favorite Channels** | Quick-access channel presets per zone (via INI files) |
 | **Bulk Operations** | Control multiple receivers/zones simultaneously |
+| **Device Reboot** | Bulk reboot capability for all receivers in a zone |
+| **Lazy Loading** | Receiver status loaded asynchronously after page render |
 
 ### Management Features
 
@@ -144,6 +174,8 @@ Zone Directories:
 | **Quick Links Manager** | Add, edit, and manage special navigation links (Dashboard, OSD) |
 | **Settings Editor** | Web-based receiver/transmitter configuration with validation |
 | **Config File Editor** | Edit INI files (transmitters, favorites, WLED, payloads) |
+| **Device Directory** | Aggregated view of all devices grouped by category |
+| **IOT Status Checker** | HTTP and ping-based device monitoring with curl_multi batch checks |
 | **Automatic Backups** | Configuration backups before every save (keeps 3 most recent) |
 | **Backup Restoration** | Restore from any of the 10 most recent backups |
 | **Atomic File Writes** | File locking with temp files prevents corruption during saves |
@@ -154,18 +186,20 @@ Zone Directories:
 
 | Feature | Description |
 |---------|-------------|
-| **Responsive Design** | Works on desktop, tablet, and mobile with touch optimization |
+| **Responsive Design** | Works on desktop, tablet, and mobile with touch optimization (48px min targets) |
 | **Material Design** | Dark theme with glassmorphism and gradient effects |
 | **Modern UI** | Ambient glow effects, hover animations, loading spinners |
 | **Session Persistence** | Authentication persists until midnight (localStorage) |
 | **Real-time Feedback** | Toast notifications, visual updating states, success/error indicators |
 | **Keyboard Navigation** | Full keyboard accessibility support with tabindex |
 | **Screen Reader Support** | ARIA labels, live regions, and announcements |
+| **High Contrast Mode** | Respects `prefers-contrast: high` media query |
 | **Reduced Motion** | Respects `prefers-reduced-motion` media query |
 | **Password Visibility Toggle** | Show/hide password with accessible button |
 | **Attempt Limiting** | 10 failed password attempts locks form until refresh |
 | **Dynamic Zone Loading** | Zones loaded via API with fallback to hardcoded list |
 | **Ctrl+Click Shortcuts** | Ctrl+Click on logo opens settings, Ctrl+double-click returns home |
+| **LiveCode Compatibility** | Full support for LiveCode browser widget environments |
 
 ### UI Components
 
@@ -175,8 +209,11 @@ Zone Directories:
 | **Receiver Cards** | Individual cards per receiver with channel/volume/power controls |
 | **Virtual Remote** | Full IR remote interface with navigation pad and number pad |
 | **Transmitter Selector** | Dropdown to select IR transmitter for remote commands |
+| **Favorite Channels** | Quick-access dropdown for preset channels |
+| **WLED Footer** | Zone-specific lighting on/off buttons |
 | **Loading States** | Spinner animations and disabled states during operations |
 | **Error Messages** | Clear error display with shake animation on failures |
+| **Channel Overlay** | On-screen number pad for channel entry (LiveCode fallback) |
 
 ---
 
@@ -190,16 +227,21 @@ Zone Directories:
 │                 │     │  (Password Gate) │     │                 │
 └─────────────────┘     └──────────────────┘     └────────┬────────┘
                                                           │
-                                                          ▼
+                              ┌────────────────┐          │
+                              │ /api/zones.php │◀─────────┘
+                              └───────┬────────┘
+                                      │ JSON (zones, links)
+                                      ▼
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  JSON Response  │◀────│   utils.php      │◀────│  /[zone]/index  │
 │                 │     │  (API Calls)     │     │  (Controller)   │
 └─────────────────┘     └────────┬─────────┘     └─────────────────┘
-                                 │
-                                 ▼
-                        ┌──────────────────┐
-                        │   AV Devices     │
-                        │  (192.168.8.x)   │
+                                 │                        ▲
+                                 │                        │ Lazy load
+                                 ▼               ┌───────────────────┐
+                        ┌──────────────────┐     │ /api/receiver-    │
+                        │   AV Devices     │────▶│  status.php       │
+                        │  (192.168.8.x)   │     └───────────────────┘
                         └──────────────────┘
 ```
 
@@ -209,13 +251,20 @@ Zone Directories:
 |-----------|---------------|
 | `index.html` | Password gate, zone navigation, dynamic zone loading from API |
 | `script.js` (root) | Authentication, session management, Ctrl+click shortcuts |
+| `landing.js` | Zone button rendering, color utilities, LiveCode compat |
+| `livecode-compat.js` | Storage adapter, fetch wrapper, keyboard helper, channel buffer |
 | `api/zones.php` | REST API for zone configuration, validates zone directories |
+| `api/receiver-status.php` | REST API for individual receiver status (channel, volume, capabilities) |
+| `api/devices.php` | REST API aggregating devices from zone configs, devices.json, DBconfigs.ini |
 | `BaseController.php` | AJAX routing, request validation, response formatting, anti-popping |
 | `utils.php` | Device communication, volume/channel control, DSP audio, input validation |
 | `zones.php` | Zone CRUD operations, atomic file writes, configuration caching |
 | `[zone]/config.php` | Zone-specific settings (receivers, transmitters, limits) |
 | `[zone]/template.php` | Zone UI rendering with receiver forms and remote control |
 | `shared/script.js` | Client-side controls, accessibility, debounced volume, remote commands |
+| `status.php` | IOT device monitoring with HTTP + ping fallback and curl_multi |
+| `devices.php` (root) | Device directory web interface with category grouping and search |
+| `shared/reboot.php` | Bulk device reboot using zone RECEIVERS config |
 
 ### Data Flow
 
@@ -223,7 +272,7 @@ Zone Directories:
 2. Session stored in localStorage with daily expiration (midnight)
 3. Zones loaded dynamically from `/api/zones.php` with timeout and fallback
 4. User selects zone from navigation grid
-5. Zone interface loads current device states via API calls
+5. Zone page renders immediately; receiver status lazy-loaded via `/api/receiver-status.php`
 6. User actions trigger AJAX requests to zone controller
 7. Controller validates input and calls appropriate utility functions
 8. Utility functions communicate with devices via HTTP API
@@ -233,7 +282,7 @@ Zone Directories:
 
 The system uses atomic writes with file locking to prevent data corruption:
 
-1. Acquire exclusive lock on `.lock` file (5 second timeout)
+1. Acquire exclusive lock on `.lock` file (5-second timeout, 100ms retry intervals)
 2. Write data to temporary file (`.tmp.[pid]`)
 3. Atomic rename of temp file to target file
 4. Release lock and clean up
@@ -270,9 +319,10 @@ To add volume control support for additional JAP models, add the model string to
 
 Just Add Power IR blasters with HTTP API:
 - Support for SENDIR format IR codes
-- Support for hex format IR codes
+- Support for Pronto hex format IR codes
 - Multiple channels per transmitter (1-10)
 - Commands executed via JAP's `fluxhandlerV2.sh` script
+- Fire-and-forget semantics: HTTP errors don't indicate command failure
 
 #### How `fluxhandlerV2.sh` works in this project
 
@@ -296,7 +346,7 @@ Just Add Power IR blasters with HTTP API:
 
 **IR transport details:**
 - For commands that need transmit, the script writes to `/dev/ttyS0` via `microcom` (`115200` baud).
-- It prints command responses back to stdout with `` line endings, which is what the API caller receives.
+- It prints command responses back to stdout with `\r` line endings, which is what the API caller receives.
 
 **Operational requirement:**
 - `fluxhandlerV2.sh` must exist and be executable on the target JAP host, because all zone API handlers in this repo call that exact script name.
@@ -312,6 +362,7 @@ Just Add Power IR blasters with HTTP API:
 | Mobile Video TX | Portable video source |
 | Mobile Audio TX | Portable audio source |
 | Unifi Signage | Digital signage system |
+| Trivia | Trivia system source |
 
 ### Smart Lighting (WLED)
 
@@ -320,7 +371,8 @@ WLED-compatible addressable LED controllers:
 - Protocol: JSON API (`/json/state`)
 - Per-zone device lists in `WLEDlist.ini`
 - Bulk on/off operations
-- 3-second timeout per device
+- 3-second timeout per device with 2-second connection timeout
+- Failure reporting with affected device list
 
 ---
 
@@ -329,20 +381,20 @@ WLED-compatible addressable LED controllers:
 | Zone | ID | Receivers | Description |
 |------|-----|-----------|-------------|
 | **Bowling Lanes** | `bowling` | 4 | NeoVerse displays + Bowling Music receiver |
-| **Bowling Bar** | `bowlingbar` | 5 | Bar area with TV displays |
-| **Roller Rink** | `rink` | - | Roller rink video/audio system |
-| **Jesters** | `jesters` | - | Arcade and entertainment area |
-| **Facility** | `facility` | - | Facility-wide control center |
-| **Outside** | `outside` | - | Outdoor displays and audio |
-| **DJ Booth** | `dj` | 17 | Main entertainment control (largest zone) |
-| **Multi** | `multi` | - | Select multiple zones for batch control |
-| **ALL** | `all` | - | Control all zones simultaneously |
+| **Bowling Bar** | `bowlingbar` | 10 | Bar area TVs, NeoVerse displays, dining area, billiards |
+| **Roller Rink** | `rink` | 2 | Roller rink video/audio system |
+| **Jesters** | `jesters` | 3 | Arcade and entertainment area |
+| **Facility** | `facility` | 1 | Facility-wide control |
+| **Outside** | `outside` | 1 | Outdoor displays and audio |
+| **DJ Booth** | `dj` | 17 | Main entertainment control hub (largest zone) |
+| **Multi** | `multi` | 2 | Select multiple zones for batch control |
+| **ALL** | `all` | 21 | Control all zones simultaneously |
 
 ### Special Zones
 
-- **ALL Zone**: Sends commands to all receivers across all zones
-- **Multi Zone**: Allows selecting specific zones for batch operations
-- **DJ Zone**: Central control hub with 17 receivers for main event management
+- **ALL Zone**: Sends commands to all 21 receivers across all zones. Includes `audio_toggle_handler.php` for bulk audio toggling.
+- **Multi Zone**: Allows selecting specific zones for batch operations. Includes `audio_toggle_handler.php` and zone-specific `devices.php`.
+- **DJ Zone**: Central control hub with 17 receivers for main event management.
 
 ### Quick Links
 
@@ -379,6 +431,10 @@ WLED-compatible addressable LED controllers:
 
 2. **Set directory permissions:**
    ```bash
+   # Use the included script:
+   bash fix_permissions.sh
+
+   # Or manually:
    chmod -R 755 .
    chmod -R 777 */  # Allow writes to zone directories
    chmod 666 zones.json  # Allow zone configuration updates
@@ -400,12 +456,11 @@ WLED-compatible addressable LED controllers:
 
 ### Password Configuration
 
-The system password is defined in `/script.js`:
-```javascript
-const x7y9z3 = "your_password";
-```
+The system password is configured in two places:
+- `site-config.json` under `site.password`
+- `landing.js` (client-side validation)
 
-**Important**: Change this password before deploying to production.
+**Important**: Change the default password before deploying to production.
 
 ---
 
@@ -424,10 +479,12 @@ const RECEIVERS = [
         'show_power' => true,       // Show power on/off buttons
         'power_on_command' => 'cec_tv_on.sh',   // Optional per-device power-on CLI command
         'power_off_command' => 'cec_tv_off.sh', // Optional per-device power-off CLI command
-        'power_on_repeat' => true,  // Optional: include in delayed second Power All On pass
-        'power_on_followup_command' => 'cec_watch_me.sh', // Optional: follow-up CEC source-select command (must exist on JAP)
-        'power_on_followup_fallback_command' => 'cec_power_on_tv', // Optional: fallback command if primary follow-up fails
-        'power_on_followup_delay_ms' => 7000, // Optional delay before follow-up command (startup buffer)
+        'power_on_repeat' => true,  // Optional: include in delayed second Power All On pass (30s)
+        'power_on_followup_command' => 'cec_watch_me.sh', // Optional: follow-up CEC source-select command
+        'power_on_followup_fallback_command' => 'cec_power_on_tv', // Optional: fallback if primary fails
+        'power_on_followup_delay_ms' => 7000, // Optional delay before follow-up (default 5000ms)
+        'power_off_pre_command' => 'cec_watch_me.sh', // Optional: switch input before power off
+        'power_off_pre_delay_ms' => 3000, // Optional delay before actual power off (default 3000ms)
     ],
 ];
 
@@ -451,7 +508,7 @@ const LOG_LEVEL = 'error';       // debug, info, warning, error
 const HOME_URL = '/';            // Relative path for home button
 const LOG_FILE = __DIR__ . '/av_controls.log';
 
-// Remote control commands
+// Remote control commands (whitelist)
 const REMOTE_CONTROL_COMMANDS = [
     'power', 'guide', 'up', 'down', 'left', 'right', 'select',
     'channel_up', 'channel_down',
@@ -463,6 +520,59 @@ const REMOTE_CONTROL_COMMANDS = [
 const VOLUME_CONTROL_MODELS = [
     '3G+4+ TX', '3G+AVP RX', '3G+AVP TX', '3G+WP4 TX', '2G/3G SX'
 ];
+
+// User-facing error messages
+const ERROR_MESSAGES = [
+    'connection' => 'Unable to connect to %s (%s). Please check the connection and try again.',
+    'global' => 'Unable to connect to any receivers. Please check your network connection and try again.',
+    'remote' => 'Unable to send remote command. Please try again.',
+];
+```
+
+### Site-Wide Configuration (site-config.json)
+
+Central configuration for the entire site:
+
+```json
+{
+    "site": {
+        "name": "Castle AV Controls",
+        "tagline": "Audio-Visual Control System",
+        "logo": "logo.png",
+        "password": "1313",
+        "sessionExpiresEndOfDay": true,
+        "homeUrl": "/",
+        "adminUrl": "zonemanager.php"
+    },
+    "network": {
+        "avSubnet": "192.168.8",
+        "wledSubnet": "192.168.6",
+        "infraSubnet": "192.168.1",
+        "apiBasePath": "/cgi-bin/api/",
+        "apiTimeout": 2,
+        "serverIp": "192.168.8.127"
+    },
+    "ui": {
+        "theme": "dark",
+        "primaryColor": "#6366f1",
+        "accentColor": "#22d3ee",
+        "defaultZoneColor": "#00C853",
+        "touchMinHeight": "48px",
+        "lowResBreakpoint": "1024px",
+        "compactMode": false
+    },
+    "deviceDirectory": {
+        "showInNav": true,
+        "groupByCategory": true,
+        "categories": [
+            { "id": "av-receivers", "name": "AV Receivers", "icon": "monitor" },
+            { "id": "transmitters", "name": "Transmitters", "icon": "broadcast" },
+            { "id": "wled", "name": "WLED Lighting", "icon": "lightbulb" },
+            { "id": "infrastructure", "name": "Infrastructure", "icon": "server" },
+            { "id": "printers", "name": "Network Printers", "icon": "printer" }
+        ]
+    }
+}
 ```
 
 ### Master Zone Registry (zones.json)
@@ -496,8 +606,7 @@ The `zones.json` file is the single source of truth for zone configuration:
             "url": "dashboard/",
             "enabled": true,
             "showInNav": true,
-            "color": "#2196F3",
-            "openInNewTab": false
+            "color": "#2196F3"
         }
     ],
     "settings": {
@@ -508,25 +617,68 @@ The `zones.json` file is the single source of truth for zone configuration:
 }
 ```
 
+### Infrastructure Devices (DBconfigs.ini)
+
+Registry of non-AV infrastructure devices used by the status checker and device directory:
+
+```ini
+[Temp Sensors]
+Sensor Name = 192.168.1.XX
+
+[Pi Projects]
+Project Name = 192.168.1.XX
+
+[WLED]
+Device Name = 192.168.6.XX
+
+[Printers]
+Printer Name = 192.168.1.XX
+```
+
+### Global Device Registry (devices.json)
+
+Defines receiver and transmitter information used by the device directory:
+
+```json
+{
+    "receivers": [
+        { "name": "Device Name", "ip": "192.168.8.XX", "type": "video", "show_power": true }
+    ],
+    "transmitters": [
+        { "name": "Cable Box 1", "channel": 4, "description": "Attic TX 1" }
+    ],
+    "settings": {
+        "max_volume": 11,
+        "min_volume": 0,
+        "volume_step": 1,
+        "api_timeout": 2
+    }
+}
+```
+
 ### Data Files
 
 | File | Format | Purpose |
 |------|--------|---------|
 | `transmitters.txt` | CSV | IR blaster devices: `Name, http://IP` |
 | `payloads.txt` | INI | IR commands: `command=sendir,...` |
-| `favorites.ini` | INI | Quick channels: `channel_number=Channel Name` |
-| `WLEDlist.ini` | INI | WLED IPs: `[WLEDs]` section with `ip1 = "192.168.X.X"` |
+| `favorites.ini` | INI | Quick channels: `channel_number=Channel Name` under `[favorites]` |
+| `WLEDlist.ini` | INI | WLED IPs: `ip1 = "192.168.X.X"` under `[WLEDs]` section |
 | `saved_volumes.json` | JSON | Persistent volume state per receiver |
 
 ### IR Payload Format
 
-IR commands in `payloads.txt` use the SENDIR format:
+IR commands in `payloads.txt` support two formats:
 
+**SENDIR format (Global Cache):**
 ```ini
 power=sendir,1:1,1,58000,1,1,192,192,48,145,...
-guide=0000 0048 0000 0018 00c0 00c0...
 channel_up=sendir,1:1,1,58000,1,1,193,192,49,...
-0=sendir,1:1,1,58000,1,1,192,192,48,145,...
+```
+
+**Pronto hex format:**
+```ini
+guide=0000 0048 0000 0018 00c0 00c0...
 ```
 
 ---
@@ -540,7 +692,7 @@ channel_up=sendir,1:1,1,58000,1,1,193,192,49,...
 3. **Select Zone**: Click desired zone from the navigation grid
 4. **Control Devices**:
    - **Channel**: Use dropdown to select input source (auto-submits)
-   - **Volume**: Adjust slider (debounced auto-save, 500ms delay)
+   - **Volume**: Adjust slider (debounced auto-save, 300ms delay)
    - **Power**: Click Power On/Off buttons
    - **Remote**: Use virtual remote for detailed control
 
@@ -566,9 +718,18 @@ Access via Ctrl+Click on zone logo or `/settings.php?zone=zonename`:
 - View/restore from configuration backups (up to 10)
 - File permission and ownership information displayed
 
+### Device Directory
+
+Access via the Devices button in zone headers or `/devices.php`:
+
+- Browse all devices grouped by category (AV Receivers, Transmitters, WLED, Infrastructure, Printers)
+- Search/filter devices by name
+- View device IPs and zone assignments
+- Clickable device URLs for direct access
+
 ### WLED Control
 
-Control smart lighting via `/wled.php`:
+Control smart lighting via WLED buttons in zone footer:
 
 - Zone-specific lighting control
 - Bulk on/off operations for all WLED devices in zone
@@ -590,21 +751,22 @@ Control smart lighting via `/wled.php`:
 
 ### Authentication Model
 
-- **Client-Side Validation**: Password verified in browser
+- **Client-Side Validation**: Password verified in browser (defined in `landing.js` and `site-config.json`)
 - **Session Storage**: localStorage with daily expiration (midnight)
-- **Attempt Limiting**: 10 failed attempts locks form until refresh
-- **Zone Validation**: Server-side whitelist prevents unauthorized access
+- **Attempt Limiting**: 10 failed attempts locks form until page refresh
+- **Zone Validation**: Server-side whitelist prevents unauthorized zone access
 
 ### Security Features
 
 | Feature | Implementation |
 |---------|---------------|
 | Input Sanitization | `sanitizeInput()` validates all user input (int, ip, string types) |
-| IP Validation | `filter_var()` with `FILTER_VALIDATE_IP` |
+| IP Validation | `filter_var()` with `FILTER_VALIDATE_IP` prevents SSRF |
 | Output Escaping | `htmlspecialchars()` prevents XSS |
 | Zone Whitelist | Validation against `zones.json` registry |
 | File Locking | Atomic writes with exclusive locks prevent race conditions |
 | Error Masking | Internal paths not exposed to users |
+| Config Protection | .htaccess blocks direct access to .ini, .log, .json.lock, backup files |
 | CORS Headers | API endpoints allow cross-origin requests |
 
 ### Security Recommendations
@@ -616,7 +778,6 @@ For production deployment:
 - Move `config.ini` outside web root
 - Implement rate limiting on API endpoints
 - Enable PHP error logging to file (not display)
-- Consider removing debug error display in production
 
 ---
 
@@ -624,7 +785,7 @@ For production deployment:
 
 ### Device API Endpoints
 
-Communication with AV receivers:
+Communication with AV receivers (on device at 192.168.8.X):
 
 | Endpoint | Method | Purpose | Response |
 |----------|--------|---------|----------|
@@ -643,12 +804,62 @@ Communication with AV receivers:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/zones.php` | GET | Get zones and quick links configuration |
+| `/api/zones.php` | GET | Get zones, quick links, and settings configuration |
+| `/api/receiver-status.php?ip=X` | GET | Get receiver channel, volume, and capabilities |
+| `/api/devices.php` | GET | Get aggregated device directory from all sources |
 | `/[zone]/` | POST | Control zone receivers (channel, volume, power, remote) |
 | `/settings.php?zone=X` | GET/POST | Zone settings management |
 | `/editini.php?zone=X` | GET/POST | Config file editor |
 | `/wled.php` | POST | WLED lighting control |
 | `/zonemanager.php` | POST | Zone management CRUD operations |
+| `/status.php` | GET/POST | IOT device status checks (single, batch, all) |
+
+### Receiver Status API
+
+`GET /api/receiver-status.php?ip=192.168.8.XX`
+
+**Response:**
+```json
+{
+    "success": true,
+    "channel": 4,
+    "volume": 8,
+    "supportsVolume": true
+}
+```
+
+### Device Directory API
+
+`GET /api/devices.php`
+
+**Response:**
+```json
+{
+    "devices": [
+        {
+            "name": "Device Name",
+            "ip": "192.168.8.XX",
+            "category": "av-receivers",
+            "zones": ["Bowling Lanes", "DJ Booth"]
+        }
+    ],
+    "generated": "2026-03-11 12:00:00",
+    "categories": [
+        { "id": "av-receivers", "name": "AV Receivers", "icon": "monitor" }
+    ]
+}
+```
+
+### IOT Status Checker API
+
+`GET/POST /status.php`
+
+**Actions:**
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `check_single` | ip | Check status of a single device |
+| `check_batch` | ips (JSON array) | Check multiple devices in parallel |
+| `check_all` | - | Check all devices from DBconfigs.ini |
 
 ### Zone Manager API Actions
 
@@ -670,7 +881,7 @@ Communication with AV receivers:
 
 | Endpoint | Method | Payload |
 |----------|--------|---------|
-| `/json/state` | POST | `{"on": true}` or `{"on": false}` |
+| `/json/state` (on WLED device) | POST | `{"on": true}` or `{"on": false}` |
 
 ---
 
@@ -758,6 +969,7 @@ include_url       = true         # Include monitor URL in SMS
 | API errors | Confirm device is powered on and accessible |
 | Volume not changing | Device may not support volume (check model list) |
 | Power not working | Verify `show_power` is true and device supports CEC |
+| Receiver shows "Loading..." | Wait a few seconds; device may be unreachable |
 
 ### IR Commands
 
@@ -765,7 +977,7 @@ include_url       = true         # Include monitor URL in SMS
 |---------|----------|
 | Commands not working | Verify IPs in transmitters.txt |
 | Wrong actions | Check payloads.txt has correct IR codes |
-| Intermittent failures | Check network connectivity to IR blasters |
+| Intermittent failures | Normal - IR uses fire-and-forget semantics |
 | No transmitters listed | Ensure transmitters.txt exists and is readable |
 
 ### WLED Issues
@@ -773,7 +985,7 @@ include_url       = true         # Include monitor URL in SMS
 | Problem | Solution |
 |---------|----------|
 | Lights not responding | Verify IPs in WLEDlist.ini under `[WLEDs]` section |
-| Partial control | Some devices may be offline (check failure list) |
+| Partial control | Some devices may be offline (check failure list in response) |
 | Timeout errors | Increase device timeout or check network |
 
 ### Configuration
@@ -783,7 +995,7 @@ include_url       = true         # Include monitor URL in SMS
 | Settings not saving | Check write permissions on zone directories (777) |
 | Backup failures | Ensure sufficient disk space |
 | Config file locked | Wait for lock timeout (5 seconds) or check for stuck processes |
-| Zones not loading | Check zones.json syntax and API endpoint |
+| Zones not loading | Check zones.json syntax and `/api/zones.php` response |
 
 ### Enabling Debug Logging
 
@@ -819,6 +1031,7 @@ The system automatically creates backups:
 - `config_backup_YYYYMMDD_HHMMSS.php` - Before each config save
 - Keeps 3 most recent backups per zone (older ones auto-deleted)
 - Up to 10 backups available for restoration in Settings UI
+- Backup files blocked from direct web access via .htaccess
 
 **Manual backup:**
 ```bash
@@ -835,13 +1048,24 @@ for zone in bowling bowlingbar rink jesters facility outside dj multi all; do
 done
 ```
 
+### Device Reboot
+
+To reboot all receivers in a zone:
+```bash
+cd /var/www/html/AV-system/[zone]
+php -r "require 'config.php'; require '../shared/reboot.php';"
+```
+
+Devices reboot with 250ms delay between commands and take approximately 90 seconds to come back online.
+
 ### Health Checks
 
 1. **Verify zone accessibility**: Visit each zone in browser
 2. **Test device communication**: Change channel on each receiver
 3. **Check WLED connectivity**: Toggle lights in each zone
-4. **Review logs**: Check for error patterns
+4. **Review logs**: Check for error patterns in `[zone]/av_controls.log`
 5. **Test API endpoint**: Visit `/api/zones.php` to verify JSON response
+6. **Check device status**: Use `/status.php` or `/devices.php` for device overview
 
 ### Adding New Hardware
 
@@ -858,6 +1082,9 @@ done
 
 4. **New WLED Device**:
    - Add entry to zone's `WLEDlist.ini` under `[WLEDs]` section
+
+5. **New Infrastructure Device**:
+   - Add entry to `DBconfigs.ini` under the appropriate section
 
 ### Creating a New Zone
 
@@ -892,5 +1119,6 @@ This project is proprietary software for Castle Fun Center AV Control System.
 |---------|------|---------|
 | 3.0 | 2025 | Complete refactor with shared codebase, zone templates, atomic file writes |
 | 3.0.1 | 2025 | Added Quick Links manager, improved UI with glassmorphism, enhanced accessibility |
+| 3.0.2 | 2025-2026 | Device directory, IOT status checker, device reboot, LiveCode compatibility, receiver lazy loading |
 | 2.0 | - | Zone manager and settings UI |
 | 1.0 | - | Initial multi-zone implementation |
