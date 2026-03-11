@@ -14,6 +14,9 @@ if (!defined('ZONE_DIR')) {
     define('ZONE_DIR', dirname(__FILE__));
 }
 
+// Set Content-Type early so all responses (including early exits) are valid JSON
+header('Content-Type: application/json');
+
 // Ensure this script only processes POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405); // Method Not Allowed
@@ -107,7 +110,6 @@ $response = [
     'failures' => $failures
 ];
 
-// Send JSON response
-header('Content-Type: application/json');
+// Send JSON response (Content-Type already set at top of file)
 echo json_encode($response);
 exit;
