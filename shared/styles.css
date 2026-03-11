@@ -298,6 +298,27 @@ h2 {
     align-self: flex-start;
     position: sticky;
     top: 120px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+#remote-control::-webkit-scrollbar {
+    width: 6px;
+}
+
+#remote-control::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#remote-control::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 3px;
+}
+
+#remote-control::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.6);
 }
 
 /* Receivers Grid */
@@ -3274,6 +3295,7 @@ a:focus-visible {
     #remote-control {
         flex: 0 0 280px;
         top: 80px;
+        max-height: calc(100vh - 100px);
     }
 }
 
@@ -3357,6 +3379,7 @@ a:focus-visible {
     #remote-control {
         flex: 0 0 240px;
         top: 60px;
+        max-height: calc(100vh - 80px);
     }
 
     .content-wrapper {
