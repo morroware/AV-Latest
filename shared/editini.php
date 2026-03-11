@@ -16,10 +16,11 @@ if (!defined('ZONE_DIR')) {
     define('ZONE_DIR', dirname(__FILE__));
 }
 
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Log errors to file instead of displaying to users
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
+ini_set('log_errors', 1);
 
 // Check if the config.php file exists
 $configFile = ZONE_DIR . '/config.php';
@@ -87,6 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save']) && isset($_PO
 
             if (file_put_contents($filePath, $_POST['content']) !== false) {
                 $message = ['type' => 'success', 'text' => "File {$fileToSave} saved successfully."];
+
+                // Limit backups to 3 most recent per file
+                $baseName = pathinfo($fileToSave, PATHINFO_FILENAME);
+                $ext = pathinfo($fileToSave, PATHINFO_EXTENSION);
+                $backups = glob(ZONE_DIR . '/' . $baseName . '_backup_*.' . $ext);
+                if ($backups && count($backups) > 3) {
+                    sort($backups);
+                    $toDelete = array_slice($backups, 0, count($backups) - 3);
+                    foreach ($toDelete as $old) {
+                        @unlink($old);
+                    }
+                }
             } else {
                 $message = ['type' => 'error', 'text' => "Failed to save file {$fileToSave}."];
             }

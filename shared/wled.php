@@ -14,6 +14,9 @@ if (!defined('ZONE_DIR')) {
     define('ZONE_DIR', dirname(__FILE__));
 }
 
+// Set Content-Type early so all responses (including early exits) are valid JSON
+header('Content-Type: application/json');
+
 // Ensure this script only processes POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405); // Method Not Allowed
@@ -60,6 +63,13 @@ $failures = [];
 $timeout = 3; // 3 second timeout per device
 
 foreach ($wledDevices as $deviceIp) {
+    $deviceIp = trim($deviceIp, '" ');
+    // Validate IP address to prevent SSRF
+    if (!filter_var($deviceIp, FILTER_VALIDATE_IP)) {
+        $failureCount++;
+        $failures[] = ['ip' => $deviceIp, 'http_code' => 0, 'response' => 'Invalid IP address'];
+        continue;
+    }
     $url = "http://$deviceIp$apiPath";
     $ch = curl_init($url);
 
@@ -100,7 +110,6 @@ $response = [
     'failures' => $failures
 ];
 
-// Send JSON response
-header('Content-Type: application/json');
+// Send JSON response (Content-Type already set at top of file)
 echo json_encode($response);
 exit;

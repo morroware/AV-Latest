@@ -310,60 +310,33 @@ function supportsDspControl($deviceIp) {
 }
 
 /**
- * Disable DSP Line audio
+ * Set DSP audio state for a given type (line or hdmi)
+ *
+ * @param string $deviceIp Device IP address
+ * @param string $type Audio type ('line' or 'hdmi')
+ * @param bool $enabled True to enable, false to disable
+ * @return bool Success status
  */
-function disableDspLineAudio($deviceIp) {
+function setDspAudioState($deviceIp, $type, $enabled) {
     try {
-        $response = makeApiCall('POST', $deviceIp, 'command/audio/dsp/line', '"off"', 'application/json');
+        $state = $enabled ? '"on"' : '"off"';
+        $response = makeApiCall('POST', $deviceIp, "command/audio/dsp/$type", $state, 'application/json');
         $data = json_decode($response, true);
         return isset($data['data']) && $data['data'] === 'OK';
     } catch (Exception $e) {
-        logMessage("DSP Line audio control not available for $deviceIp: " . $e->getMessage(), 'info');
+        logMessage("DSP $type audio control not available for $deviceIp: " . $e->getMessage(), 'info');
         return false;
     }
 }
 
-/**
- * Enable DSP Line audio
- */
-function enableDspLineAudio($deviceIp) {
-    try {
-        $response = makeApiCall('POST', $deviceIp, 'command/audio/dsp/line', '"on"', 'application/json');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
-    } catch (Exception $e) {
-        logMessage("DSP Line audio control not available for $deviceIp: " . $e->getMessage(), 'info');
-        return false;
-    }
-}
-
-/**
- * Disable DSP HDMI audio
- */
-function disableDspHdmiAudio($deviceIp) {
-    try {
-        $response = makeApiCall('POST', $deviceIp, 'command/audio/dsp/hdmi', '"off"', 'application/json');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
-    } catch (Exception $e) {
-        logMessage("DSP HDMI audio control not available for $deviceIp: " . $e->getMessage(), 'info');
-        return false;
-    }
-}
-
-/**
- * Enable DSP HDMI audio
- */
-function enableDspHdmiAudio($deviceIp) {
-    try {
-        $response = makeApiCall('POST', $deviceIp, 'command/audio/dsp/hdmi', '"on"', 'application/json');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
-    } catch (Exception $e) {
-        logMessage("DSP HDMI audio control not available for $deviceIp: " . $e->getMessage(), 'info');
-        return false;
-    }
-}
+/** @deprecated Use setDspAudioState($deviceIp, 'line', false) */
+function disableDspLineAudio($deviceIp) { return setDspAudioState($deviceIp, 'line', false); }
+/** @deprecated Use setDspAudioState($deviceIp, 'line', true) */
+function enableDspLineAudio($deviceIp) { return setDspAudioState($deviceIp, 'line', true); }
+/** @deprecated Use setDspAudioState($deviceIp, 'hdmi', false) */
+function disableDspHdmiAudio($deviceIp) { return setDspAudioState($deviceIp, 'hdmi', false); }
+/** @deprecated Use setDspAudioState($deviceIp, 'hdmi', true) */
+function enableDspHdmiAudio($deviceIp) { return setDspAudioState($deviceIp, 'hdmi', true); }
 
 /**
  * Disable HDMI audio (mute)
@@ -539,7 +512,11 @@ function sanitizeInput($data, $type, $options = []) {
  * Log messages to file
  */
 function logMessage($message, $level = 'info') {
-    if ($level === 'error' || strtolower(LOG_LEVEL) === $level) {
+    static $levelHierarchy = ['debug' => 0, 'info' => 1, 'warn' => 2, 'error' => 3];
+    $configLevel = $levelHierarchy[strtolower(LOG_LEVEL)] ?? 1;
+    $messageLevel = $levelHierarchy[$level] ?? 1;
+
+    if ($messageLevel >= $configLevel) {
         $timestamp = date('Y-m-d H:i:s');
         $formattedMessage = "[$timestamp] [$level] $message" . PHP_EOL;
         $logFile = defined('LOG_FILE') ? LOG_FILE : __DIR__ . '/av_controls.log';

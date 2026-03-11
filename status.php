@@ -124,21 +124,27 @@ class IOTStatusChecker
         // Extract IP from address (remove port and path)
         $ip = preg_replace('/:[0-9]+.*$/', '', $address);
         $ip = preg_replace('/\/.*$/', '', $ip);
-        
+
         // Skip ping for external domains
         if (strpos($ip, '.com') !== false || strpos($ip, '.org') !== false || strpos($ip, '.net') !== false) {
             return false;
         }
-        
-        // Use ping command
-        $pingCommand = stripos(PHP_OS, 'WIN') === 0 
-            ? "ping -n 1 -w 2000 {$ip}" 
-            : "ping -c 1 -W 2 {$ip}";
-        
+
+        // Validate IP address to prevent command injection
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        // Use ping command with escaped argument
+        $escapedIp = escapeshellarg($ip);
+        $pingCommand = stripos(PHP_OS, 'WIN') === 0
+            ? "ping -n 1 -w 2000 {$escapedIp}"
+            : "ping -c 1 -W 2 {$escapedIp}";
+
         $output = [];
         $returnVar = 0;
         exec($pingCommand . ' 2>&1', $output, $returnVar);
-        
+
         return ($returnVar === 0);
     }
 

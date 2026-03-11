@@ -400,7 +400,7 @@ function showResponseMessage(message, success) {
     responseElement
         .removeClass('success error')
         .addClass(success ? 'success' : 'error')
-        .html(message)
+        .text(message)
         .fadeIn();
 
     setTimeout(() => responseElement.fadeOut(), 3000);
@@ -519,13 +519,28 @@ function loadFavoriteChannels() {
                 return;
             }
 
-            let html = '<label for="favorites">Quick Channels:</label> <select id="favorites" aria-label="Quick channel selection">';
-            html += '<option value="">Select a favorite...</option>';
+            const wrapper = document.createElement('div');
+            const label = document.createElement('label');
+            label.setAttribute('for', 'favorites');
+            label.textContent = 'Quick Channels: ';
+            wrapper.appendChild(label);
+
+            const select = document.createElement('select');
+            select.id = 'favorites';
+            select.setAttribute('aria-label', 'Quick channel selection');
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Select a favorite...';
+            select.appendChild(defaultOpt);
             favorites.forEach(fav => {
-                html += `<option value="${fav.key}">${fav.value}</option>`;
+                const opt = document.createElement('option');
+                opt.value = fav.key;
+                opt.textContent = fav.value;
+                select.appendChild(opt);
             });
-            html += '</select>';
-            container.innerHTML = html;
+            wrapper.appendChild(select);
+            container.innerHTML = '';
+            container.appendChild(wrapper);
 
             // Handle favorite selection - send each digit sequentially
             document.getElementById('favorites').addEventListener('change', function() {
