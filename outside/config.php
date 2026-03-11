@@ -5,8 +5,8 @@
  */
 
 const RECEIVERS = [
-    'Front Concession' => [
-        'ip' => '192.168.8.16',
+    'Driving Range Music RX' => [
+        'ip' => '192.168.8.66',
         'show_power' => false
     ],
 ];

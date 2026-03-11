@@ -210,6 +210,6 @@ This validates zone configs, required files, JSON syntax, and PHP syntax. Return
 - All zone templates should include jQuery 3.7.1 from CDN and `livecode-compat.js`
 - The `footer` element must be inside `<body>`, not after `</body>`
 - Templates should use consistent header buttons (Home, Settings, Devices) with proper SVG icons
-- The `dj` zone is the largest with 17 receivers; `all` zone controls 21 receivers across all zones
+- The `dj` and `all` zones are the largest with 24 receivers each, covering all devices in the facility
 - `multi` and `all` zones have additional files: `audio_toggle_handler.php`, `devices.php`
 - IR command execution uses fire-and-forget semantics - HTTP errors don't indicate command failure; only DNS/connection-refused means the device is unreachable
