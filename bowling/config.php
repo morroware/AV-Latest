@@ -32,7 +32,7 @@ const TRANSMITTERS = [
     'Mobile Video TX' => 5,
     'Mobile Audio TX' => 1,
     'RockBot Audio' => 2,
-    'Wireless Mic TX' => 8,
+    'Wireless Mic TX' => 6,
     'Trivia' => 9,
 ];
 

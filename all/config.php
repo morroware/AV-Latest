@@ -68,15 +68,15 @@ const RECEIVERS = [
         'show_power' => true
     ],
     'Attic RX 2' => [
-        'ip' => '192.168.8.12',
+        'ip' => '192.168.8.79',
         'show_power' => true
     ],
     'Attic RX 4' => [
-        'ip' => '192.168.8.20',
+        'ip' => '192.168.8.19',
         'show_power' => true
     ],
     'Bowling Bar Music' => [
-        'ip' => '192.168.8.75',
+        'ip' => '192.168.8.60',
         'show_power' => false
     ],
     'Axe/Billiards Music' => [
@@ -106,15 +106,15 @@ const RECEIVERS = [
 ];
 
 const TRANSMITTERS = [
-    'Cable Box 1 (Attic TX 1)' => 7,
+    'Cable Box 1 (Attic TX 1)' => 4,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 3 (Attic TX 3)' => 4,
-    'Apple TV' => 2,
-    'Unifi Signage' => 5,
-    'Mobile Video TX' => 9,
+    'Cable Box 3 (Attic TX 3)' => 7,
+    'Apple TV' => 1,
+    'Unifi Signage' => 8,
+    'Mobile Video TX' => 5,
     'Mobile Audio TX' => 1,
-    'RockBot Audio' => 10,
-    'Wireless Mic TX' => 8,
+    'RockBot Audio' => 2,
+    'Wireless Mic TX' => 6,
 ];
 
 const MAX_VOLUME = 11;

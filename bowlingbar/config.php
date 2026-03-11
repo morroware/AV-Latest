@@ -48,16 +48,16 @@ const RECEIVERS = [
 ];
 
 const TRANSMITTERS = [
-    'Cable Box 1 (Attic TX 1)' => 7,
+    'Cable Box 1 (Attic TX 1)' => 4,
     'Cable Box 2 (Attic TX 2)' => 3,
     'Cable Box 3 (Attic TX 3)' => 7,
-    'Apple TV' => 4,
+    'Apple TV' => 1,
     'Unifi Signage' => 8,
     'Mobile Video TX' => 5,
     'Mobile Audio TX' => 1,
     'RockBot Audio' => 2,
     'Wireless Mic TX' => 6,
-    'Trivia' => 11,
+    'Trivia' => 9,
 ];
 
 const MAX_VOLUME = 11;
