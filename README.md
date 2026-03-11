@@ -274,6 +274,24 @@ Just Add Power IR blasters with HTTP API:
 - Multiple channels per transmitter (1-10)
 - Commands executed via JAP's `fluxhandlerV2.sh` script
 
+#### `fluxhandlerV2.sh` integration details
+
+`fluxhandlerV2.sh` is the IR command translation layer between this app and JAP hardware CLI input.
+
+- The web app generates a payload from `payloads.txt` and posts it to each JAP endpoint as a shell pipeline like:
+  - `echo "<payload>" | ./fluxhandlerV2.sh`
+- `fluxhandlerV2.sh` parses command types (`sendir`, `getversion`, `getdevices`, etc.), formats the response, and sends IR output over serial (`/dev/ttyS0`) using `microcom`.
+- The handler also accepts raw hex IR input and returns `ERR_001` for unsupported input formats.
+
+#### Why v2 is used (instead of legacy fluxhandler scripts)
+
+You may encounter older vendor scripts named `fluxhandler.sh` or `fluxhandlerv1.sh` in JAP examples or device images. This project intentionally uses `fluxhandlerV2.sh` because it is the implementation wired into all zone APIs and shared controller code.
+
+- **Current project expectation:** `fluxhandlerV2.sh` is present and executable on the target JAP host.
+- **Operational impact:** replacing it with v1/legacy names without compatibility wrappers (e.g., symlink) will break IR command delivery.
+
+If JAP firmware ever changes this interface, update both script deployment and the payload pipeline references in the API controllers together.
+
 ### Input Sources
 
 | Source | Description |
