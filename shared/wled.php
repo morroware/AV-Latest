@@ -60,6 +60,13 @@ $failures = [];
 $timeout = 3; // 3 second timeout per device
 
 foreach ($wledDevices as $deviceIp) {
+    $deviceIp = trim($deviceIp, '" ');
+    // Validate IP address to prevent SSRF
+    if (!filter_var($deviceIp, FILTER_VALIDATE_IP)) {
+        $failureCount++;
+        $failures[] = ['ip' => $deviceIp, 'http_code' => 0, 'response' => 'Invalid IP address'];
+        continue;
+    }
     $url = "http://$deviceIp$apiPath";
     $ch = curl_init($url);
 

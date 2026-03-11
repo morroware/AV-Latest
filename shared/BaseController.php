@@ -304,6 +304,18 @@ class BaseController {
         $deviceUrl = rtrim($_POST['device_url'], '/');
         $action = $_POST['action'] ?? '';
 
+        // Validate device_url to prevent SSRF attacks
+        $urlHost = $deviceUrl;
+        if (preg_match('#^https?://#i', $urlHost)) {
+            $parsed = parse_url($urlHost);
+            $urlHost = $parsed['host'] ?? '';
+        }
+        $urlHost = preg_replace('/:[0-9]+$/', '', $urlHost);
+        if (!filter_var($urlHost, FILTER_VALIDATE_IP)) {
+            $response['message'] = "Invalid device URL";
+            return $response;
+        }
+
         if (empty($action)) {
             $response['message'] = "No action specified";
             return $response;

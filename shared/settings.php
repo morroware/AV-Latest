@@ -16,8 +16,8 @@ if (!defined('ZONE_DIR')) {
     define('ZONE_DIR', dirname(__FILE__));
 }
 
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
+// Log errors to file instead of displaying to users
+ini_set('display_errors', 0);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 

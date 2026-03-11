@@ -116,17 +116,7 @@
                     });
                 }
 
-                // Device Directory link (always shown)
-                var devDir = document.createElement('a');
-                devDir.href = 'devices.php';
-                devDir.className = 'button special-link';
-                devDir.textContent = 'Device Directory';
-                devDir.setAttribute('role', 'button');
-                devDir.setAttribute('title', 'View all network devices and IP addresses');
-                devDir.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
-                devDir.style.color = '#ffffff';
-                devDir.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.3)';
-                container.appendChild(devDir);
+                // Device Directory link is already in the admin footer below the grid
             })
             .catch(function (error) {
                 if (timeoutId) clearTimeout(timeoutId);

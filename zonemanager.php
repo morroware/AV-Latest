@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'color' => $_POST['color'] ?? '#00C853'
             ];
 
-            // Sanitize zone ID first (same logic as addZone)
-            $zoneId = preg_replace('/[^a-z0-9]/', '', strtolower($zoneData['id']));
+            // Sanitize zone ID using shared helper
+            $zoneId = sanitizeZoneId($zoneData['id']);
             if (empty($zoneId)) {
                 $result = ['success' => false, 'message' => 'Zone ID must contain alphanumeric characters'];
                 break;
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // If config save failed, rollback by deleting the directory
             if (!$result['success']) {
-                deleteDirectory(dirname(__DIR__) . '/' . $zoneId);
+                deleteDirectory(__DIR__ . '/' . $zoneId);
             }
             break;
 

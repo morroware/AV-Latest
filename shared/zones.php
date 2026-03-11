@@ -12,6 +12,17 @@
 define('ZONES_CONFIG_FILE', dirname(__DIR__) . '/zones.json');
 
 /**
+ * Sanitize a zone ID to lowercase alphanumeric only
+ *
+ * @param string $id Raw zone ID
+ * @return string Sanitized zone ID
+ */
+function sanitizeZoneId(string $id): string
+{
+    return preg_replace('/[^a-z0-9]/', '', strtolower($id));
+}
+
+/**
  * Static cache for zones configuration
  * Prevents multiple file reads within the same request
  */
@@ -232,7 +243,7 @@ function addZone(array $zoneData): array
     }
 
     // Sanitize zone ID (lowercase, alphanumeric only)
-    $zoneId = preg_replace('/[^a-z0-9]/', '', strtolower($zoneData['id']));
+    $zoneId = sanitizeZoneId($zoneData['id']);
     if (empty($zoneId)) {
         return ['success' => false, 'message' => 'Zone ID must contain alphanumeric characters'];
     }
@@ -493,7 +504,7 @@ PHP;
  */
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
+ini_set('display_errors', '0');
 
 ob_start();
 
@@ -664,7 +675,7 @@ function duplicateZone(string $sourceZoneId, string $newZoneId, string $newZoneN
     }
 
     // Sanitize new zone ID
-    $newZoneId = preg_replace('/[^a-z0-9]/', '', strtolower($newZoneId));
+    $newZoneId = sanitizeZoneId($newZoneId);
     if (empty($newZoneId)) {
         return ['success' => false, 'message' => 'Invalid zone ID'];
     }

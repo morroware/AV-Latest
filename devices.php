@@ -158,7 +158,7 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         // Search / filter
@@ -174,10 +174,28 @@
             });
 
             // Hide empty sections
+            var anyVisible = false;
             sections.forEach(function(section) {
                 var visibleCards = section.querySelectorAll('.dir-device-card:not([style*="display: none"])');
-                section.style.display = visibleCards.length > 0 ? '' : 'none';
+                var hasVisible = visibleCards.length > 0;
+                section.style.display = hasVisible ? '' : 'none';
+                if (hasVisible) anyVisible = true;
             });
+
+            // Show/hide no-results message
+            var noResults = document.getElementById('no-results-msg');
+            if (!anyVisible && query) {
+                if (!noResults) {
+                    noResults = document.createElement('p');
+                    noResults.id = 'no-results-msg';
+                    noResults.className = 'dir-empty';
+                    noResults.textContent = 'No devices matching your search.';
+                    container.appendChild(noResults);
+                }
+                noResults.style.display = '';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
         });
 
         // Load data

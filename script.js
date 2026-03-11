@@ -238,13 +238,7 @@ function setupLogoControlDoubleClick() {
 
 submitPassword.addEventListener('click', checkPassword);
 
-passwordInput.addEventListener('keyup', function(event) {
-    if (event.key === 'Enter') {
-        checkPassword();
-    }
-});
-
-// Also handle keydown for Enter (some browsers/widgets prefer this)
+// Handle Enter key - use keydown only to prevent double-fire
 passwordInput.addEventListener('keydown', function(event) {
     if (event.key === 'Enter' || event.keyCode === 13) {
         event.preventDefault();
@@ -272,7 +266,7 @@ document.querySelectorAll('.button').forEach(button => {
         // Only intercept if this button doesn't have an href (dynamically generated ones do)
         if (!this.href || this.href === window.location.href) {
             event.preventDefault();
-            const buttonName = this.textContent.toLowerCase().replace(' ', '');
+            const buttonName = this.textContent.toLowerCase().replace(/ /g, '');
             const newUrl = buttonName + '/';
             window.location.href = newUrl;
         }
