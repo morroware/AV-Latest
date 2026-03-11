@@ -6,23 +6,23 @@
 
 const RECEIVERS = [
     'Bowling Bar TV 1' => [
-        'ip' => '192.168.8.60',
+        'ip' => '192.168.8.64',
         'show_power' => true
     ],
     'Bowling Bar TV 2' => [
-        'ip' => '192.168.8.61',
+        'ip' => '192.168.8.82',
         'show_power' => true
     ],
     'Bowling Bar TV 3' => [
-        'ip' => '192.168.8.62',
+        'ip' => '192.168.8.73',
         'show_power' => true
     ],
     'Bowling Bar TV 4' => [
-        'ip' => '192.168.8.63',
+        'ip' => '192.168.8.81',
         'show_power' => true
     ],
     'Billiards TV' => [
-        'ip' => '192.168.8.54',
+        'ip' => '192.168.8.68',
         'show_power' => true,
         'power_on_command' => 'cec_power_on_tv',
         'power_on_repeat' => false,
@@ -33,15 +33,15 @@ const RECEIVERS = [
         'power_off_pre_delay_ms' => 3000
     ],
     'NeoVerse 1' => [
-        'ip' => '192.168.8.50',
+        'ip' => '192.168.8.72',
         'show_power' => true
     ],
     'NeoVerse 2' => [
-        'ip' => '192.168.8.51',
+        'ip' => '192.168.8.71',
         'show_power' => true
     ],
     'NeoVerse 3' => [
-        'ip' => '192.168.8.52',
+        'ip' => '192.168.8.80',
         'show_power' => true
     ],
     'Dining Area TV' => [
@@ -56,49 +56,49 @@ const RECEIVERS = [
         'power_off_pre_delay_ms' => 3000
     ],
     'Rink Video Display' => [
-        'ip' => '192.168.8.13',
+        'ip' => '192.168.8.77',
         'show_power' => true
     ],
     'Attic RX 2' => [
-        'ip' => '192.168.8.12',
+        'ip' => '192.168.8.79',
         'show_power' => true
     ],
     'Attic RX 4' => [
-        'ip' => '192.168.8.20',
+        'ip' => '192.168.8.19',
         'show_power' => true
     ],
     'Bowling Bar Music' => [
-        'ip' => '192.168.8.28',
+        'ip' => '192.168.8.60',
         'show_power' => false
     ],
     'Axe/Billiards Music' => [
-        'ip' => '192.168.8.27',
+        'ip' => '192.168.8.76',
         'show_power' => false
     ],
     'Bowling Music' => [
-        'ip' => '192.168.8.25',
+        'ip' => '192.168.8.75',
         'show_power' => false
     ],
     'Rink Music' => [
-        'ip' => '192.168.8.15',
+        'ip' => '192.168.8.78',
         'show_power' => false
     ],
     'Facility Zone Pro' => [
-        'ip' => '192.168.8.81',
+        'ip' => '192.168.8.65',
         'show_power' => false
     ],
 ];
 
 const TRANSMITTERS = [
-    'Cable Box 1 (Attic TX 1)' => 7,
+    'Cable Box 1 (Attic TX 1)' => 4,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 3 (Attic TX 3)' => 4,
-    'Apple TV' => 2,
-    'Unifi Signage' => 5,
-    'Mobile Video TX' => 9,
+    'Cable Box 3 (Attic TX 3)' => 7,
+    'Apple TV' => 1,
+    'Unifi Signage' => 8,
+    'Mobile Video TX' => 5,
     'Mobile Audio TX' => 1,
-    'RockBot Audio' => 10,
-    'Wireless Mic TX' => 8,
+    'RockBot Audio' => 2,
+    'Wireless Mic TX' => 6,
 ];
 
 const MAX_VOLUME = 11;

@@ -78,14 +78,14 @@
         },
         {
             "name": "Bar TV Left",
-            "ip": "192.168.8.20",
+            "ip": "192.168.8.19",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
             "name": "Bar TV Right",
-            "ip": "192.168.8.12",
+            "ip": "192.168.8.69",
             "type": "video",
             "show_power": true,
             "enabled": true
@@ -150,7 +150,7 @@
     "transmitters": [
         {
             "name": "Cable Box 1 (Attic TX 1)",
-            "channel": 7,
+            "channel": 4,
             "enabled": true
         },
         {
@@ -160,22 +160,22 @@
         },
         {
             "name": "Cable Box 3 (Attic TX 3)",
-            "channel": 4,
+            "channel": 7,
             "enabled": true
         },
         {
             "name": "Apple TV",
-            "channel": 2,
+            "channel": 1,
             "enabled": true
         },
         {
             "name": "Unifi Signage",
-            "channel": 5,
+            "channel": 8,
             "enabled": true
         },
         {
             "name": "Mobile Video TX",
-            "channel": 9,
+            "channel": 5,
             "enabled": true
         },
         {
@@ -185,12 +185,12 @@
         },
         {
             "name": "RockBot Audio",
-            "channel": 10,
+            "channel": 2,
             "enabled": true
         },
         {
             "name": "Wireless Mic TX",
-            "channel": 8,
+            "channel": 6,
             "enabled": true
         }
     ],
