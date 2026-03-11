@@ -336,25 +336,29 @@ class BaseController {
             $response['success'] = true;
             $response['message'] = "Command sent successfully";
         } catch (Exception $e) {
-            // Remote commands are fire-and-forget: if the error is an HTTP
-            // error (meaning the request reached the device), the IR command
-            // was already executed regardless of the response code.  Only
-            // treat actual connection failures as errors.
+            // IR commands are fire-and-forget: the shell pipeline
+            //   echo "<payload>" | ./fluxhandlerV2.sh
+            // executes the IR transmission before the HTTP response is
+            // generated.  Therefore HTTP errors, timeouts, connection
+            // resets, and empty replies do NOT mean the command failed —
+            // only that the response was lost or delayed.
+            //
+            // The only true failure is when the request never reached the
+            // device at all (connection refused, DNS failure), meaning
+            // fluxhandlerV2.sh never ran.
             $msg = $e->getMessage();
-            if (strpos($msg, 'HTTP error') !== false
-                || stripos($msg, 'timed out') !== false
-                || stripos($msg, 'timeout') !== false
-            ) {
-                // HTTP errors mean the request reached the device — command
-                // was executed.  Timeouts mean the request was sent but the
-                // device was slow to respond — the IR signal was already
-                // fired by the shell pipeline.
+            $isUnreachable = stripos($msg, 'Could not resolve') !== false
+                || stripos($msg, 'Connection refused') !== false
+                || stripos($msg, 'No route to host') !== false;
+
+            if ($isUnreachable) {
+                $response['message'] = "Device unreachable";
+                logMessage("IR command failed — device unreachable: " . $msg, 'error');
+            } else {
+                // HTTP error, timeout, reset, empty reply — command was sent
                 $response['success'] = true;
                 $response['message'] = "Command sent successfully";
-                logMessage("Remote command non-fatal cURL issue (command still sent): " . $msg, 'debug');
-            } else {
-                $response['message'] = "Error sending command: " . $msg;
-                logMessage("Error sending remote command: " . $msg, 'error');
+                logMessage("IR command sent (non-fatal cURL issue): " . $msg, 'debug');
             }
         }
 

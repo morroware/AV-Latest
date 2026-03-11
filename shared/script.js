@@ -454,12 +454,12 @@ function sendCommand(action) {
     }).then(function(response) {
         if (response.success) {
             showResponseMessage('Command sent: ' + action, true);
-        } else if (response.message) {
-            showError(response.message);
+        } else {
+            showResponseMessage(response.message || 'Command failed', false);
         }
-    }).fail(function(error) {
-        showError('Failed to send command');
-        console.error('Failed to send command:', error);
+    }).fail(function(jqXHR, textStatus) {
+        showResponseMessage('Failed to send command', false);
+        console.error('Remote command request failed:', textStatus);
     });
 }
 
