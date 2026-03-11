@@ -137,6 +137,4 @@
         }
     </script>
 </body>
-<footer>
-</footer>
 </html>

@@ -19,7 +19,7 @@
                     <img src="logo.png" alt="Castle AV Controls Logo" class="logo" onclick="handleLogoClick(event)" style="cursor: pointer">
                 </div>
                 <h1>Facility Zone Pro AV Controls</h1><br>
-		<h3>Arcade, IPK, Jesters, And Ballocity<h3>
+                <h3>Arcade, IPK, Jesters, And Ballocity</h3>
             </div>
 
             <div class="header-buttons">

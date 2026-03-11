@@ -19,7 +19,7 @@
                     <img src="logo.png" alt="Castle AV Controls Logo" class="logo" onclick="handleLogoClick(event)" style="cursor: pointer">
                 </div>
                 <h1>Outside Music AV Controls</h1><br>
-		<h3>Front Concession<h3>
+                <h3>Front Concession</h3>
             </div>
 
             <div class="header-buttons">
