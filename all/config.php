@@ -1,7 +1,7 @@
 <?php
 /**
  * Generated Configuration File
- * Last Updated: 2026-03-11 00:00:00
+ * Last Updated: 2026-03-11 00:20:00
  */
 
 const RECEIVERS = [
@@ -42,6 +42,14 @@ const RECEIVERS = [
     ],
     'NeoVerse 3' => [
         'ip' => '192.168.8.80',
+        'show_power' => true
+    ],
+    'Bar TV Left' => [
+        'ip' => '192.168.8.19',
+        'show_power' => true
+    ],
+    'Bar TV Right' => [
+        'ip' => '192.168.8.69',
         'show_power' => true
     ],
     'Dining Area TV' => [
