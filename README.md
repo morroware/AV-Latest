@@ -274,23 +274,32 @@ Just Add Power IR blasters with HTTP API:
 - Multiple channels per transmitter (1-10)
 - Commands executed via JAP's `fluxhandlerV2.sh` script
 
-#### `fluxhandlerV2.sh` integration details
+#### How `fluxhandlerV2.sh` works in this project
 
-`fluxhandlerV2.sh` is the IR command translation layer between this app and JAP hardware CLI input.
+`fluxhandlerV2.sh` is the command adapter that sits between this PHP app and the JAP device's IR serial interface.
 
-- The web app generates a payload from `payloads.txt` and posts it to each JAP endpoint as a shell pipeline like:
-  - `echo "<payload>" | ./fluxhandlerV2.sh`
-- `fluxhandlerV2.sh` parses command types (`sendir`, `getversion`, `getdevices`, etc.), formats the response, and sends IR output over serial (`/dev/ttyS0`) using `microcom`.
-- The handler also accepts raw hex IR input and returns `ERR_001` for unsupported input formats.
+**How this app uses it (request flow):**
+1. UI action (for example, Power/Volume/Input) maps to an IR payload in `payloads.txt`.
+2. API code wraps that payload in a shell pipeline:
+   - `echo "<payload>" | ./fluxhandlerV2.sh`
+3. The payload is sent to the JAP device `command/cli` endpoint.
+4. On the JAP side, `fluxhandlerV2.sh` reads one input line at a time and decides what to do.
 
-#### Why v2 is used (instead of legacy fluxhandler scripts)
+**What `fluxhandlerV2.sh` does with input:**
+- `sendir,...` input: normalizes the sendir payload (including repeat-count adjustment) and transmits IR.
+- `getdevices`: returns a static device list response (`ETHERNET`, `IR`, `endlistdevices`).
+- `getversion`: returns the script version string (`FluxCapacitor_v2`).
+- `get_NET`: returns IP/mask/gateway from runtime network variables.
+- `get_IR` / `stopir`: returns expected IR status response strings.
+- Raw hex IR input: forwards directly for transmission if format is valid.
+- Unknown/invalid input: returns `ERR_001`.
 
-You may encounter older vendor scripts named `fluxhandler.sh` or `fluxhandlerv1.sh` in JAP examples or device images. This project intentionally uses `fluxhandlerV2.sh` because it is the implementation wired into all zone APIs and shared controller code.
+**IR transport details:**
+- For commands that need transmit, the script writes to `/dev/ttyS0` via `microcom` (`115200` baud).
+- It prints command responses back to stdout with `` line endings, which is what the API caller receives.
 
-- **Current project expectation:** `fluxhandlerV2.sh` is present and executable on the target JAP host.
-- **Operational impact:** replacing it with v1/legacy names without compatibility wrappers (e.g., symlink) will break IR command delivery.
-
-If JAP firmware ever changes this interface, update both script deployment and the payload pipeline references in the API controllers together.
+**Operational requirement:**
+- `fluxhandlerV2.sh` must exist and be executable on the target JAP host, because all zone API handlers in this repo call that exact script name.
 
 ### Input Sources
 
