@@ -8,58 +8,58 @@
     "receivers": [
         {
             "name": "Bowling Bar TV 1",
-            "ip": "192.168.8.60",
+            "ip": "192.168.8.64",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
             "name": "Bowling Bar TV 2",
-            "ip": "192.168.8.61",
+            "ip": "192.168.8.82",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
             "name": "Bowling Bar TV 3",
-            "ip": "192.168.8.62",
+            "ip": "192.168.8.73",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
             "name": "Bowling Bar TV 4",
-            "ip": "192.168.8.63",
+            "ip": "192.168.8.81",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
-            "name": "Billiards TV",
-            "ip": "192.168.8.54",
+            "name": "Billiards TV 1",
+            "ip": "192.168.8.68",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
             "name": "NeoVerse 1",
-            "ip": "192.168.8.50",
+            "ip": "192.168.8.72",
             "type": "video",
-            "show_power": true,
+            "show_power": false,
             "enabled": true
         },
         {
             "name": "NeoVerse 2",
-            "ip": "192.168.8.51",
+            "ip": "192.168.8.71",
             "type": "video",
-            "show_power": true,
+            "show_power": false,
             "enabled": true
         },
         {
             "name": "NeoVerse 3",
-            "ip": "192.168.8.52",
+            "ip": "192.168.8.80",
             "type": "video",
-            "show_power": true,
+            "show_power": false,
             "enabled": true
         },
         {
@@ -70,57 +70,78 @@
             "enabled": true
         },
         {
-            "name": "Rink Video Display",
-            "ip": "192.168.8.13",
+            "name": "Rink Video Wall",
+            "ip": "192.168.8.77",
             "type": "video",
-            "show_power": true,
+            "show_power": false,
             "enabled": true
         },
         {
-            "name": "Attic RX 2",
-            "ip": "192.168.8.12",
-            "type": "video",
-            "show_power": true,
-            "enabled": true
-        },
-        {
-            "name": "Attic RX 4",
+            "name": "Bar TV Left",
             "ip": "192.168.8.20",
             "type": "video",
             "show_power": true,
             "enabled": true
         },
         {
+            "name": "Bar TV Right",
+            "ip": "192.168.8.12",
+            "type": "video",
+            "show_power": true,
+            "enabled": true
+        },
+        {
+            "name": "Left DJ TV",
+            "ip": "192.168.8.67",
+            "type": "video",
+            "show_power": true,
+            "enabled": true
+        },
+        {
+            "name": "Right DJ TV",
+            "ip": "192.168.8.61",
+            "type": "video",
+            "show_power": true,
+            "enabled": true
+        },
+        {
             "name": "Bowling Bar Music",
-            "ip": "192.168.8.28",
+            "ip": "192.168.8.75",
             "type": "audio",
             "show_power": false,
             "enabled": true
         },
         {
             "name": "Axe/Billiards Music",
-            "ip": "192.168.8.27",
+            "ip": "192.168.8.76",
             "type": "audio",
             "show_power": false,
             "enabled": true
         },
         {
             "name": "Bowling Music",
-            "ip": "192.168.8.25",
+            "ip": "192.168.8.60",
             "type": "audio",
             "show_power": false,
             "enabled": true
         },
         {
             "name": "Rink Music",
-            "ip": "192.168.8.15",
+            "ip": "192.168.8.78",
             "type": "audio",
             "show_power": false,
             "enabled": true
         },
         {
-            "name": "Facility Zone Pro",
-            "ip": "192.168.8.81",
+            "name": "Arcade, IPK, Ballocity and Jesters Zone Pro",
+            "ip": "192.168.8.65",
+            "type": "audio",
+            "show_power": false,
+            "enabled": true
+        },
+        {
+            "name": "Front Concession",
+            "ip": "192.168.8.16",
             "type": "audio",
             "show_power": false,
             "enabled": true

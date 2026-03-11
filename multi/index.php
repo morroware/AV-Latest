@@ -185,103 +185,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
 
                 <?php
-                // Separate receivers into video and audio using the type field
-                $videoReceivers = [];
-                $audioReceivers = [];
+                // Group receivers by zone, then by type within each zone
+                $receiversByZone = [];
 
                 foreach (RECEIVERS as $name => $config) {
+                    $zone = $config['zone'] ?? 'Other';
                     $type = $config['type'] ?? 'video';
-                    if ($type === 'audio') {
-                        $audioReceivers[$name] = $config;
-                    } else {
-                        $videoReceivers[$name] = $config;
+                    if (!isset($receiversByZone[$zone])) {
+                        $receiversByZone[$zone] = ['video' => [], 'audio' => []];
                     }
+                    $receiversByZone[$zone][$type][$name] = $config;
                 }
                 ?>
 
-                <!-- Video Receivers Section -->
+                <?php foreach ($receiversByZone as $zoneName => $types): ?>
                 <div class="receiver-category">
-                    <h3 class="category-title">📺 Video Receivers</h3>
+                    <h3 class="category-title"><?php echo htmlspecialchars($zoneName); ?></h3>
                     <div class="receivers-grid">
-                        <?php foreach ($videoReceivers as $name => $config): ?>
-                        <?php 
+                        <?php
+                        // Combine video and audio for this zone
+                        $zoneReceivers = array_merge($types['video'], $types['audio']);
+                        foreach ($zoneReceivers as $name => $config):
+                            $type = $config['type'] ?? 'video';
                             $supportsVolume = false;
                             $currentVolume = 0;
                             $currentChannel = null;
                             $currentTransmitter = 'Unknown';
-                            
-                            try {
-                                // Get current channel
-                                $currentChannel = getCurrentChannel($config['ip']);
-                                
-                                // Find transmitter name for current channel
-                                if ($currentChannel !== null) {
-                                    foreach (TRANSMITTERS as $txName => $txChannel) {
-                                        if ($txChannel == $currentChannel) {
-                                            $currentTransmitter = $txName;
-                                            break;
-                                        }
-                                    }
-                                    if ($currentTransmitter === 'Unknown') {
-                                        $currentTransmitter = "Channel $currentChannel";
-                                    }
-                                }
-                                
-                                // Check volume support
-                                $supportsVolume = supportsVolumeControl($config['ip']);
-                                if ($supportsVolume) {
-                                    $currentVolume = getCurrentVolume($config['ip']) ?? 0;
-                                }
-                            } catch (Exception $e) {
-                                // Device might be offline
-                                $currentTransmitter = 'Offline';
-                            }
-                        ?>
-                        <div class="receiver-checkbox-card video-receiver" data-ip="<?php echo htmlspecialchars($config['ip']); ?>" data-name="<?php echo htmlspecialchars($name); ?>" data-type="video" onclick="toggleReceiver(this)">
-                            <input type="checkbox" class="receiver-check" value="<?php echo htmlspecialchars($config['ip']); ?>">
-                            <div class="checkbox-indicator"></div>
-                            <div class="receiver-info">
-                                <div class="receiver-name"><?php echo htmlspecialchars($name); ?></div>
-                                <div class="receiver-ip"><?php echo htmlspecialchars($config['ip']); ?></div>
-                                <div class="current-transmitter">
-                                    <span class="tx-label">Current TX:</span>
-                                    <span class="tx-value"><?php echo htmlspecialchars($currentTransmitter); ?></span>
-                                </div>
-                                <?php if ($supportsVolume): ?>
-                                <div class="volume-control">
-                                    <label>New Volume:</label>
-                                    <input type="range"
-                                           class="volume-slider"
-                                           min="<?php echo MIN_VOLUME; ?>"
-                                           max="<?php echo MAX_VOLUME; ?>"
-                                           value="<?php echo $currentVolume; ?>"
-                                           data-ip="<?php echo htmlspecialchars($config['ip']); ?>"
-                                           onclick="event.stopPropagation()">
-                                    <span class="volume-value"><?php echo $currentVolume; ?></span>
-                                </div>
-                                <?php endif; ?>
-                                <div class="receiver-status"></div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
 
-                <!-- Audio Receivers Section -->
-                <div class="receiver-category">
-                    <h3 class="category-title">🔊 Audio Receivers</h3>
-                    <div class="receivers-grid">
-                        <?php foreach ($audioReceivers as $name => $config): ?>
-                        <?php 
-                            $supportsVolume = false;
-                            $currentVolume = 0;
-                            $currentChannel = null;
-                            $currentTransmitter = 'Unknown';
-                            
                             try {
                                 // Get current channel
                                 $currentChannel = getCurrentChannel($config['ip']);
-                                
+
                                 // Find transmitter name for current channel
                                 if ($currentChannel !== null) {
                                     foreach (TRANSMITTERS as $txName => $txChannel) {
@@ -294,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         $currentTransmitter = "Channel $currentChannel";
                                     }
                                 }
-                                
+
                                 // Check volume support
                                 $supportsVolume = supportsVolumeControl($config['ip']);
                                 if ($supportsVolume) {
@@ -305,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 $currentTransmitter = 'Offline';
                             }
                         ?>
-                        <div class="receiver-checkbox-card audio-receiver" data-ip="<?php echo htmlspecialchars($config['ip']); ?>" data-name="<?php echo htmlspecialchars($name); ?>" data-type="audio" onclick="toggleReceiver(this)">
+                        <div class="receiver-checkbox-card <?php echo $type; ?>-receiver" data-ip="<?php echo htmlspecialchars($config['ip']); ?>" data-name="<?php echo htmlspecialchars($name); ?>" data-type="<?php echo $type; ?>" onclick="toggleReceiver(this)">
                             <input type="checkbox" class="receiver-check" value="<?php echo htmlspecialchars($config['ip']); ?>">
                             <div class="checkbox-indicator"></div>
                             <div class="receiver-info">
@@ -334,6 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <?php endforeach; ?>
                     </div>
                 </div>
+                <?php endforeach; ?>
 
                 <div class="transmitter-section">
                     <h3>Select Transmitter Source</h3>
