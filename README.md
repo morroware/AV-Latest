@@ -274,6 +274,33 @@ Just Add Power IR blasters with HTTP API:
 - Multiple channels per transmitter (1-10)
 - Commands executed via JAP's `fluxhandlerV2.sh` script
 
+#### How `fluxhandlerV2.sh` works in this project
+
+`fluxhandlerV2.sh` is the command adapter that sits between this PHP app and the JAP device's IR serial interface.
+
+**How this app uses it (request flow):**
+1. UI action (for example, Power/Volume/Input) maps to an IR payload in `payloads.txt`.
+2. API code wraps that payload in a shell pipeline:
+   - `echo "<payload>" | ./fluxhandlerV2.sh`
+3. The payload is sent to the JAP device `command/cli` endpoint.
+4. On the JAP side, `fluxhandlerV2.sh` reads one input line at a time and decides what to do.
+
+**What `fluxhandlerV2.sh` does with input:**
+- `sendir,...` input: normalizes the sendir payload (including repeat-count adjustment) and transmits IR.
+- `getdevices`: returns a static device list response (`ETHERNET`, `IR`, `endlistdevices`).
+- `getversion`: returns the script version string (`FluxCapacitor_v2`).
+- `get_NET`: returns IP/mask/gateway from runtime network variables.
+- `get_IR` / `stopir`: returns expected IR status response strings.
+- Raw hex IR input: forwards directly for transmission if format is valid.
+- Unknown/invalid input: returns `ERR_001`.
+
+**IR transport details:**
+- For commands that need transmit, the script writes to `/dev/ttyS0` via `microcom` (`115200` baud).
+- It prints command responses back to stdout with `` line endings, which is what the API caller receives.
+
+**Operational requirement:**
+- `fluxhandlerV2.sh` must exist and be executable on the target JAP host, because all zone API handlers in this repo call that exact script name.
+
 ### Input Sources
 
 | Source | Description |
