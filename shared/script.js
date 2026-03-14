@@ -296,8 +296,7 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
-    const receiverRepeatsPowerOn = receiverElement.dataset.powerOnRepeat !== '0';
-    const shouldSendFollowup = Boolean(followupCommand) && (!receiverRepeatsPowerOn || options.repeatPass);
+    const shouldSendFollowup = Boolean(followupCommand);
 
     // Some displays may still react to power-on even when the HTTP request itself fails/times out.
     // Keep the sequence resilient by attempting the follow-up command regardless.
