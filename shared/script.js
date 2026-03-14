@@ -667,29 +667,50 @@ function sendChannelNumber(channelNumber) {
 
 // Load favorite channels if available
 function loadFavoriteChannels() {
-    compatFetch('favorites.ini')
-        .then(response => {
-            if (!response.ok) return null;
-            return response.text();
-        })
+    const container = document.getElementById('favorite-channels-select');
+    if (!container) return;
+
+    const pathCandidates = [
+        'favorites.ini',
+        './favorites.ini',
+        `${window.location.pathname.replace(/[^/]*$/, '')}favorites.ini`
+    ];
+
+    function fetchFavorites(pathIndex) {
+        if (pathIndex >= pathCandidates.length) {
+            throw new Error('Unable to load favorites.ini from known paths');
+        }
+
+        const path = pathCandidates[pathIndex];
+        return compatFetch(path)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status} from ${path}`);
+                return response.text();
+            })
+            .catch(() => fetchFavorites(pathIndex + 1));
+    }
+
+    fetchFavorites(0)
         .then(data => {
-            if (!data) return;
-
-            const container = document.getElementById('favorite-channels-select');
-            if (!container) return;
-
             const favorites = [];
-            const lines = data.split('\n').filter(line => line.trim() && !line.startsWith('[') && !line.startsWith(';'));
+            const lines = data
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('[') && !line.startsWith(';'));
 
             lines.forEach(line => {
-                const [key, value] = line.split('=').map(s => s.trim().replace(/"/g, ''));
+                const separatorIndex = line.indexOf('=');
+                if (separatorIndex === -1) return;
+
+                const key = line.slice(0, separatorIndex).trim().replace(/"/g, '');
+                const value = line.slice(separatorIndex + 1).trim().replace(/"/g, '');
                 if (key && value) {
                     favorites.push({ key, value });
                 }
             });
 
             if (favorites.length === 0) {
-                container.style.display = 'none';
+                container.textContent = 'Favorite Channels: None configured';
                 return;
             }
 
@@ -725,9 +746,8 @@ function loadFavoriteChannels() {
             });
         })
         .catch(error => {
-            console.log('No favorites file or error loading:', error);
-            const container = document.getElementById('favorite-channels-select');
-            if (container) container.style.display = 'none';
+            console.error('Favorites loading failed:', error);
+            container.textContent = 'Favorite Channels: Failed to load';
         });
 }
 
