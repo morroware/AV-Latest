@@ -59,7 +59,7 @@ Zones are distinct areas of the facility, each with their own AV equipment. The 
 | Facility | 1 | Facility-wide audio control |
 | Outside | 1 | Outdoor area controls |
 | DJ Booth | 24 | Main entertainment hub - all receivers |
-| Multi | 2 | Control multiple zones at once |
+| Multi | Dynamic | Aggregates receivers from all other zones (deduplicated) |
 | ALL | 24 | Control all zones simultaneously |
 
 Each zone contains one or more **receivers** (output devices like TVs or speakers) that can be controlled independently.
@@ -200,7 +200,7 @@ The **Multi** zone allows you to select specific zones for batch operations:
 
 ### ALL Zone
 
-The **ALL** zone broadcasts commands to every receiver (21 total):
+The **ALL** zone broadcasts commands to every receiver (24 total):
 
 1. Navigate to the **ALL** zone
 2. Any command you send applies to all receivers in the facility

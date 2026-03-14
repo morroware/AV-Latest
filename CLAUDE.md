@@ -51,8 +51,10 @@ A PHP/jQuery web application that controls 50+ AV devices (Just Add Power receiv
 │   ├── settings.php         Alias to ../settings.php with ?zone parameter
 │   ├── editini.php          Alias to ../editini.php with ?zone parameter
 │   ├── wled.php             Alias to ../wled.php with ?zone parameter
-│   ├── saved_volumes.json   Persistent volume state (some zones)
-│   └── av_controls.log      Activity log (per-zone)
+│   ├── reboot.php           Device reboot alias (bowlingbar, rink, jesters only)
+│   ├── logo.gif             Zone branding image (all zones)
+│   ├── logo.png             Zone branding image (all zones)
+│   └── av_controls.log      Activity log (per-zone, generated at runtime)
 ├── index.html             Password-protected landing page with dynamic zone loading
 ├── script.js              Root auth/navigation JS (password in landing.js)
 ├── landing.js             Zone loading, color utilities, LiveCode compat
@@ -63,6 +65,7 @@ A PHP/jQuery web application that controls 50+ AV devices (Just Add Power receiv
 ├── config.ini             Alert/monitoring config (Slack, email, SMS, webhooks)
 ├── devices.json           Global device registry (receivers, transmitters, settings)
 ├── DBconfigs.ini          Infrastructure devices (sensors, WLED, printers, Pi projects)
+├── device-directory.html  Standalone device directory page (HTML)
 ├── devices.php            Device directory web interface
 ├── devices.css            Device directory styles
 ├── status.php             IOT device status checker (HTTP + ping, uses curl_multi)
@@ -73,6 +76,9 @@ A PHP/jQuery web application that controls 50+ AV devices (Just Add Power receiv
 ├── wled.php               WLED control entry point (?zone=X)
 ├── fix_permissions.sh     File permission setup script
 ├── .htaccess              Apache security (blocks .ini, .json.lock, .log, backups)
+├── .gitignore             Git ignore rules
+├── README.md              Project documentation and technical reference
+├── USER_GUIDE.md          End-user guide for system operation
 └── logo.png               Castle Fun Center branding
 ```
 
@@ -123,10 +129,10 @@ Use the Zone Manager (`zonemanager.php`) or manually:
   - Roku-targeted power behavior in current deployment uses `cec_power_on_tv` / `cec_power_off_tv` with `cec_watch_me.sh` sequencing
 - `TRANSMITTERS` - Array of source name => channel number
 - `MAX_VOLUME` / `MIN_VOLUME` / `VOLUME_STEP` - Volume limits
-- `API_TIMEOUT` - Seconds for device API calls (default: 2)
+- `API_TIMEOUT` - Seconds for device API calls (default: 5 in utils.php; zones using devices.json settings may default to 2)
 - `LOG_LEVEL` - debug, info, warn, error
 - `LOG_FILE` - Path to zone activity log (default: `__DIR__ . '/av_controls.log'`)
-- `HOME_URL` - Home navigation target (default: `/`)
+- `HOME_URL` - Home navigation target (default: `http://localhost` in utils.php; most zones override to `/`)
 - `REMOTE_CONTROL_COMMANDS` - Whitelist of valid IR remote actions
 - `VOLUME_CONTROL_MODELS` - JAP models that support volume control
 - `ERROR_MESSAGES` - User-facing error strings for connection/global/remote errors
@@ -213,5 +219,8 @@ This validates zone configs, required files, JSON syntax, and PHP syntax. Return
 - The `footer` element must be inside `<body>`, not after `</body>`
 - Templates should use consistent header buttons (Home, Settings, Devices) with proper SVG icons
 - The `dj` and `all` zones are the largest with 24 receivers each, covering all devices in the facility
-- `multi` and `all` zones have additional files: `audio_toggle_handler.php`, `devices.php`
+- The `multi` zone dynamically aggregates receivers from all other zone configs (excluding `multi` and `all`), deduplicating by IP
+- `dj`, `multi`, and `all` zones have `audio_toggle_handler.php` for switching audio sources
+- Only `multi` zone has `devices.php` (device management interface)
+- `bowlingbar` zone has `bulk.php` for bulk input switching across multiple receivers
 - IR command execution uses fire-and-forget semantics - HTTP errors don't indicate command failure; only DNS/connection-refused means the device is unreachable
