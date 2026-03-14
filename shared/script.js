@@ -667,22 +667,31 @@ function sendChannelNumber(channelNumber) {
 
 // Load favorite channels if available
 function loadFavoriteChannels() {
-    const favoritesUrl = new URL('favorites.ini', window.location.href).toString();
+    const container = document.getElementById('favorite-channels-select');
+    if (!container) return;
 
-    compatFetch(favoritesUrl)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.text();
-        })
+    const pathCandidates = [
+        'favorites.ini',
+        './favorites.ini',
+        `${window.location.pathname.replace(/[^/]*$/, '')}favorites.ini`
+    ];
+
+    function fetchFavorites(pathIndex) {
+        if (pathIndex >= pathCandidates.length) {
+            throw new Error('Unable to load favorites.ini from known paths');
+        }
+
+        const path = pathCandidates[pathIndex];
+        return compatFetch(path)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status} from ${path}`);
+                return response.text();
+            })
+            .catch(() => fetchFavorites(pathIndex + 1));
+    }
+
+    fetchFavorites(0)
         .then(data => {
-            const container = document.getElementById('favorite-channels-select');
-            if (!container) return;
-
-            if (!data) {
-                container.style.display = 'none';
-                return;
-            }
-
             const favorites = [];
             const lines = data
                 .split(/\r?\n/)
@@ -701,7 +710,7 @@ function loadFavoriteChannels() {
             });
 
             if (favorites.length === 0) {
-                container.style.display = 'none';
+                container.textContent = 'Favorite Channels: None configured';
                 return;
             }
 
@@ -737,9 +746,8 @@ function loadFavoriteChannels() {
             });
         })
         .catch(error => {
-            console.log('No favorites file or error loading:', error);
-            const container = document.getElementById('favorite-channels-select');
-            if (container) container.style.display = 'none';
+            console.error('Favorites loading failed:', error);
+            container.textContent = 'Favorite Channels: Failed to load';
         });
 }
 
