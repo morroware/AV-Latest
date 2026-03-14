@@ -71,7 +71,7 @@ const MIN_VOLUME = 0;
 const VOLUME_STEP = 1;
 const HOME_URL = '/';
 const LOG_LEVEL = 'error';
-const API_TIMEOUT = 1;
+const API_TIMEOUT = 2;
 
 // Remote control configuration
 const REMOTE_CONTROL_COMMANDS = array (

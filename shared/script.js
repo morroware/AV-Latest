@@ -360,34 +360,128 @@ function resolvePowerCommand(receiverElement, fallbackCommand) {
     return command || fallbackCommand;
 }
 
-function sendPowerCommandToAll(command, showNotification = true, options = {}) {
-    const receivers = $('.receiver');
-    let promises = [];
+/**
+ * Send AJAX commands in batches to avoid saturating the browser connection pool.
+ * @param {Array} items - Array of items to process
+ * @param {Function} commandFn - Function that takes an item and returns a Promise
+ * @param {number} batchSize - Max items per batch (default 6, matching browser connection limit)
+ * @param {number} staggerMs - Delay between batches in ms
+ */
+function sendCommandInBatches(items, commandFn, batchSize, staggerMs) {
+    batchSize = batchSize || 6;
+    staggerMs = staggerMs || 300;
 
-    receivers.each(function() {
-        const powerCommand = resolvePowerCommand(this, command);
-        const isPowerOn = command === 'cec_power_on_tv' || command === 'cec_tv_on.sh';
+    var batches = [];
+    for (var i = 0; i < items.length; i += batchSize) {
+        batches.push(items.slice(i, i + batchSize));
+    }
 
-        // Skip second-pass power-on for receivers configured without repeat (e.g., toggle-only displays)
-        if (options.repeatPass && this.dataset.powerOnRepeat === '0') {
-            return;
-        }
+    var chain = Promise.resolve();
+    batches.forEach(function(batch, index) {
+        chain = chain.then(function() {
+            var promises = batch.map(function(item) { return commandFn(item); });
+            return Promise.all(promises).then(function() {
+                if (index < batches.length - 1) {
+                    return waitMs(staggerMs);
+                }
+            });
+        });
+    });
+    return chain;
+}
 
-        // Try multiple ways to get the device IP for compatibility
-        let deviceIp = $(this).data('ip') ||
+/**
+ * Phased power-on: separates power-on commands from follow-up (input switch)
+ * commands so they never compete for the same browser connection slots.
+ *
+ * Phase 1: Send power-on to all devices in batches
+ * Phase 2: Wait for TVs to stabilize (7s)
+ * Phase 3: Send cec_watch_me.sh to all devices in batches
+ * Phase 4: Wait 3s
+ * Phase 5: Retry cec_watch_me.sh in batches
+ */
+function sendPhasedPowerOn(receivers, options) {
+    // Phase 1: Send all power-on commands
+    return sendCommandInBatches(receivers, function(r) {
+        var powerOnCommand = r.element.dataset.powerOnCommand || 'cec_tv_on.sh';
+        return sendPowerCommand(r.ip, powerOnCommand, false).catch(function() { return null; });
+    })
+    .then(function() {
+        // On repeat pass, skip follow-up phases (input was already switched on first pass)
+        if (options && options.repeatPass) return;
+
+        // Collect receivers that have a follow-up command configured
+        var followupReceivers = receivers.filter(function(r) {
+            return Boolean(r.element.dataset.powerOnFollowupCommand);
+        });
+        if (followupReceivers.length === 0) return;
+
+        // Find the max follow-up delay across all receivers
+        var maxDelay = followupReceivers.reduce(function(max, r) {
+            var delay = parseInt(r.element.dataset.powerOnFollowupDelayMs, 10) || 7000;
+            return Math.max(max, delay);
+        }, 0);
+
+        // Phase 2: Wait for TVs to stabilize after power-on
+        return waitMs(maxDelay)
+            .then(function() {
+                // Phase 3: Send follow-up (input switch) to all devices
+                return sendCommandInBatches(followupReceivers, function(r) {
+                    return sendPowerCommand(r.ip, r.element.dataset.powerOnFollowupCommand, false)
+                        .catch(function() { return null; });
+                });
+            })
+            .then(function() {
+                // Phase 4: Brief wait before retry
+                return waitMs(3000);
+            })
+            .then(function() {
+                // Phase 5: Retry follow-up for CEC reliability
+                return sendCommandInBatches(followupReceivers, function(r) {
+                    return sendPowerCommand(r.ip, r.element.dataset.powerOnFollowupCommand, false)
+                        .catch(function() {
+                            var fallback = r.element.dataset.powerOnFollowupFallbackCommand;
+                            if (fallback) {
+                                return sendPowerCommand(r.ip, fallback, false).catch(function() { return null; });
+                            }
+                            return null;
+                        });
+                });
+            });
+    });
+}
+
+function sendPowerCommandToAll(command, showNotification, options) {
+    showNotification = showNotification !== undefined ? showNotification : true;
+    options = options || {};
+    var isPowerOn = command === 'cec_power_on_tv' || command === 'cec_tv_on.sh';
+
+    // Collect eligible receivers — skip show_power=false devices entirely
+    var eligibleReceivers = [];
+    $('.receiver').each(function() {
+        if (this.dataset.showPower === '0') return;
+
+        // Skip repeat-disabled devices on second pass (e.g., toggle-only Roku displays)
+        if (options.repeatPass && this.dataset.powerOnRepeat === '0') return;
+
+        var deviceIp = $(this).data('ip') ||
                        $(this).find('input[name="receiver_ip"]').val() ||
                        $(this).find('.channel-select').data('ip') ||
                        $(this).find('.volume-slider').data('ip');
         if (deviceIp) {
-            if (isPowerOn) {
-                promises.push(sendConfiguredPowerOn(this, deviceIp, false, { repeatPass: options.repeatPass === true }));
-            } else {
-                promises.push(sendConfiguredPowerOff(this, deviceIp, false));
-            }
+            eligibleReceivers.push({ element: this, ip: deviceIp });
         }
     });
 
-    return Promise.all(promises);
+    if (isPowerOn) {
+        // Use phased approach: power-on first, then follow-ups separately
+        return sendPhasedPowerOn(eligibleReceivers, options);
+    }
+
+    // Power-off: per-device handling (simpler chain, less contention)
+    return Promise.all(eligibleReceivers.map(function(r) {
+        return sendConfiguredPowerOff(r.element, r.ip, false);
+    }));
 }
 
 // Response message handler
