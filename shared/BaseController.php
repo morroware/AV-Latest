@@ -153,10 +153,16 @@ class BaseController {
         }
 
         $powerCommand = sanitizeInput($_POST['power_command'], 'string');
+        $rawCommand = $_POST['power_command'] ?? '';
+
+        // Debug log: capture exactly what we send and receive
+        logMessage("POWER DEBUG [{$deviceIp}]: raw='{$rawCommand}' sanitized='{$powerCommand}'", 'error');
 
         try {
             $commandResponse = makeApiCall('POST', $deviceIp, 'command/cli', $powerCommand, 'text/plain');
             $responseData = json_decode($commandResponse, true);
+
+            logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'error');
 
             if (isset($responseData['data']) && $responseData['data'] === 'OK') {
                 $response['success'] = true;
@@ -165,8 +171,8 @@ class BaseController {
                 $response['message'] = "Error sending power command: Unexpected response.";
             }
         } catch (Exception $e) {
+            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$e->getMessage()}'", 'error');
             $response['message'] = "Error sending power command: " . $e->getMessage();
-            logMessage("Error sending power command: " . $e->getMessage(), 'error');
         }
 
         return $response;
