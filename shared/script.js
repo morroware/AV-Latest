@@ -386,6 +386,19 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
             });
     }
 
+    function sendPowerOffWithRetry() {
+        return sendPowerCommand(deviceIp, powerOffCommand, showNotification)
+            .catch(function(error) {
+                console.warn('Power-off command request failed, retrying once:', error);
+                return null;
+            })
+            .then(function(response) {
+                return waitMs(1500)
+                    .then(() => sendPowerCommand(deviceIp, powerOffCommand, false).catch(() => null))
+                    .then(() => response);
+            });
+    }
+
     if (!preCommand) {
         return sendPowerOffWithRetry();
     }
