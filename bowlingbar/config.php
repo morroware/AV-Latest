@@ -24,12 +24,14 @@ const RECEIVERS = [
     'Billiards TV 1' => [
         'ip' => '192.168.8.23',
         'show_power' => true,
-        'power_on_command' => 'cec_tv_on.sh',
+        'power_on_command' => 'cec_power_on_tv',
         'power_on_repeat' => true,
         'power_on_followup_command' => 'cec_watch_me.sh',
-        'power_on_followup_fallback_command' => 'cec_power_on_tv',
+        'power_on_followup_fallback_command' => 'cec_tv_on.sh',
         'power_on_followup_delay_ms' => 9000,
-        'power_off_command' => 'cec_tv_off.sh'
+        'power_off_pre_command' => 'cec_watch_me.sh',
+        'power_off_pre_delay_ms' => 3000,
+        'power_off_command' => 'cec_power_off_tv'
     ],
     'Left DJ TV' => [
         'ip' => '192.168.8.27',
