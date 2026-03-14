@@ -1,11 +1,32 @@
 # Protect sensitive configuration files from direct web access
-<FilesMatch "\.(ini|json\.lock|log|zip)$">
+# favorites.ini is intentionally allowed (non-sensitive channel list used by frontend JS)
+<FilesMatch "\.(json\.lock|log|zip)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
     <IfModule !mod_authz_core.c>
         Order deny,allow
         Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block all .ini files except favorites.ini
+<FilesMatch "\.ini$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+<FilesMatch "^favorites\.ini$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
     </IfModule>
 </FilesMatch>
 
