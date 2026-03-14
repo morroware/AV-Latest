@@ -179,11 +179,12 @@ class BaseController {
     }
 
     /**
-     * Send a CLI command to a JAP device using the proven api.php pattern
+     * Send a CLI command to a JAP device using the documented JustOS JSON API format
      *
-     * Uses CURLOPT_POST (not CURLOPT_CUSTOMREQUEST), explicit Content-Length,
-     * and the JustOS API Tester User-Agent header — matching the format that
-     * works reliably across all JAP firmware versions.
+     * The JustOS HTTP API /command/cli endpoint expects JSON body with a "cmd" key:
+     *   { "cmd": "cec_tv_on.sh" }
+     * Some firmware versions accept text/plain but others strictly require JSON,
+     * causing inconsistent CEC behavior across devices.
      *
      * @param string $deviceIp Device IP address
      * @param string $command CLI command to execute (e.g. cec_tv_on.sh)
@@ -207,14 +208,17 @@ class BaseController {
         }
 
         try {
+            // Use JSON format as documented in JustOS HTTP API specification
+            $jsonBody = json_encode(['cmd' => $command]);
+
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: text/plain',
-                'Content-Length: ' . strlen($command),
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($jsonBody),
                 'User-Agent: JustOS API Tester'
             ]);
 
@@ -222,7 +226,7 @@ class BaseController {
             $errno = curl_errno($ch);
             $error = curl_error($ch);
 
-            // Only treat connection failures as errors (matching api.php pattern)
+            // Only treat connection failures as errors
             // Timeouts and HTTP errors don't mean the command failed
             $connectionFailureCodes = [
                 CURLE_COULDNT_RESOLVE_HOST,

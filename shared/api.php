@@ -26,13 +26,16 @@ function sendApiRequest($url, $payload) {
     $ch = curl_init();
 
     try {
+        // Use JSON format as documented in JustOS HTTP API specification
+        $jsonBody = json_encode(['cmd' => $payload]);
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: text/plain',
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($jsonBody),
             'User-Agent: JustOS API Tester'
         ]);
 
