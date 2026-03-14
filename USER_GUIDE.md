@@ -102,9 +102,9 @@ Some receivers support power on/off control:
 2. Click **Power On** to turn the display on
 3. Click **Power Off** to turn it off
 
-**Power On Sequence**: Some displays have a multi-step power-on process. The system may send a follow-up command (like CEC source select) after a short delay to ensure the display shows the correct input.
+**Power On Sequence**: Some displays have a multi-step power-on process. The system sends a primary power command, may send an alternate ON variant, then follow-up CEC source-select commands after delay/retry windows to improve reliability.
 
-**Power All On/Off**: Use the power buttons at the top of the zone to power on or off all receivers at once. A second pass may be sent automatically after 30 seconds for devices that need extra time.
+**Power All On/Off**: Use the power buttons at the top of the zone to power on or off all receivers at once. Power-all-on runs in phases and sends a second pass automatically after ~30 seconds for devices that need extra time (when `power_on_repeat` is enabled).
 
 **Note**: Power buttons only appear on receivers configured for CEC (Consumer Electronics Control).
 
@@ -333,7 +333,7 @@ Configure volume limits per zone:
 | Setting | Description |
 |---------|-------------|
 | **API Timeout** | How long to wait for device responses (seconds) |
-| **Log Level** | Amount of logging detail (error, warning, info, debug) |
+| **Log Level** | Amount of logging detail (error, warn, info, debug) |
 
 ### Configuration Backups
 
@@ -414,17 +414,18 @@ For advanced configuration, use the config file editor:
 3. Try a different browser
 4. Verify the server is running
 
-### Power On Not Working
+### Power (On/Off) Not Working
 
 **Possible Causes**:
-1. Display doesn't support CEC
-2. Power buttons not enabled for the receiver
-3. CEC command script missing from device
+1. Display doesn't support the specific CEC command variant configured
+2. Power buttons not enabled for the receiver (`show_power=false`)
+3. Device-specific command mapping is incorrect for that TV model
 
 **Solutions**:
 1. Verify `show_power` is set to true in the zone config
-2. Check that the CEC command scripts exist on the JAP device
-3. Try power cycling the receiver manually
+2. Confirm configured commands for that receiver (`power_on_command`, `power_off_command`, `power_on_followup_command`, `power_off_pre_command`) exist on the target device
+3. For Roku TVs, prefer `cec_power_on_tv` / `cec_power_off_tv` and keep `cec_watch_me.sh` follow-up/pre-off sequencing
+4. Try manual power cycle once, then retest from UI
 
 ---
 

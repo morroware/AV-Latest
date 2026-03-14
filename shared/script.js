@@ -291,8 +291,20 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function isRokuTarget(receiverElement, deviceIp) {
+    const ip = String(deviceIp || '').trim();
+    if (ip === '192.168.8.23' || ip === '192.168.8.44') {
+        return true;
+    }
+
+    const name = String((receiverElement && receiverElement.dataset && receiverElement.dataset.name) || '').toLowerCase();
+    return name.includes('billiards tv') || name.includes('dining area tv');
+}
+
 function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
     const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
+    const alternatePowerOnCommand = (powerOnCommand === 'cec_power_on_tv') ? 'cec_tv_on.sh' : 'cec_power_on_tv';
+    const rokuTarget = isRokuTarget(receiverElement, deviceIp);
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 7000;
@@ -304,6 +316,25 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
         .catch(function(error) {
             console.warn('Power-on command request failed, continuing with follow-up if configured:', error);
             return null;
+        })
+        .then(function(response) {
+            // Match the bulk power-on strategy for individual buttons too:
+            // send both discrete variants to improve CEC reliability on Roku and similar TVs.
+            return waitMs(1500)
+                .then(() => sendPowerCommand(deviceIp, alternatePowerOnCommand, false).catch(() => null))
+                .then(function() {
+                    if (!rokuTarget) {
+                        return null;
+                    }
+
+                    // Roku TVs are most reliable when receiving both script wrappers and
+                    // direct CEC binaries for one-touch-play wake behavior.
+                    return waitMs(1000)
+                        .then(() => sendPowerCommand(deviceIp, 'CEC_TV_ON', false).catch(() => null))
+                        .then(() => waitMs(1000))
+                        .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null));
+                })
+                .then(() => response);
         })
         .then(function(response) {
             if (!shouldSendFollowup) {
@@ -331,9 +362,32 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
     const powerOffCommand = receiverElement.dataset.powerOffCommand || 'cec_tv_off.sh';
     const preCommand = receiverElement.dataset.powerOffPreCommand;
     const preDelayMs = parseInt(receiverElement.dataset.powerOffPreDelayMs, 10) || 3000;
+    const rokuTarget = isRokuTarget(receiverElement, deviceIp);
+
+    function sendPowerOffWithRetry() {
+        return sendPowerCommand(deviceIp, powerOffCommand, showNotification)
+            .catch(function(error) {
+                console.warn('Power-off command request failed, retrying once:', error);
+                return null;
+            })
+            .then(function(response) {
+                return waitMs(1500)
+                    .then(() => sendPowerCommand(deviceIp, powerOffCommand, false).catch(() => null))
+                    .then(function() {
+                        if (!rokuTarget) {
+                            return null;
+                        }
+
+                        // Roku TVs can ignore wrapper scripts; also send direct CEC standby.
+                        return waitMs(1000)
+                            .then(() => sendPowerCommand(deviceIp, 'CEC_TV_OFF', false).catch(() => null));
+                    })
+                    .then(() => response);
+            });
+    }
 
     if (!preCommand) {
-        return sendPowerCommand(deviceIp, powerOffCommand, showNotification);
+        return sendPowerOffWithRetry();
     }
 
     // For displays like Roku TVs that only accept CEC Standby when on the
@@ -347,7 +401,7 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
             return waitMs(Math.max(0, preDelayMs));
         })
         .then(function() {
-            return sendPowerCommand(deviceIp, powerOffCommand, showNotification);
+            return sendPowerOffWithRetry();
         });
 }
 
