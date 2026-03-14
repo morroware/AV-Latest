@@ -70,7 +70,7 @@ function generateReceiverForms() {
 function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, $volumeStep) {
     $deviceIp = $settings['ip'] ?? '';
     $showPower = isset($settings['show_power']) ? (bool)$settings['show_power'] : true;
-    $powerOnCommand = $settings['power_on_command'] ?? 'cec_power_on_tv';
+    $powerOnCommand = $settings['power_on_command'] ?? 'cec_tv_on.sh';
     $powerOffCommand = $settings['power_off_command'] ?? 'cec_tv_off.sh';
     $powerOnRepeat = isset($settings['power_on_repeat']) ? (bool)$settings['power_on_repeat'] : true;
     $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? 'cec_watch_me.sh';

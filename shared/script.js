@@ -184,13 +184,13 @@ function initializeReceiverControls() {
     // Power On button handler with delayed second command
     $('#power-all-on').on('click', function() {
         // No response message - send command silently
-        sendPowerCommandToAll('cec_power_on_tv', false)
+        sendPowerCommandToAll('cec_tv_on.sh', false)
             .then(function() {
                 console.log("First power-on command sent, will repeat in 30 seconds");
 
                 // Set a timer to send the command again after 30 seconds
                 setTimeout(function() {
-                    sendPowerCommandToAll('cec_power_on_tv', false, { repeatPass: true })
+                    sendPowerCommandToAll('cec_tv_on.sh', false, { repeatPass: true })
                         .then(function() {
                             console.log("Second power-on command sent");
                         });
@@ -292,7 +292,7 @@ function waitMs(ms) {
 }
 
 function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
-    const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_power_on_tv';
+    const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
