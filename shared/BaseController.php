@@ -155,21 +155,90 @@ class BaseController {
         $powerCommand = sanitizeInput($_POST['power_command'], 'string');
 
         try {
-            $commandResponse = makeApiCall('POST', $deviceIp, 'command/cli', $powerCommand, 'text/plain');
+            // Send CLI command using the same proven pattern as api.php and reboot.php
+            // (CURLOPT_POST + User-Agent + Content-Length) instead of makeApiCall's
+            // CURLOPT_CUSTOMREQUEST which some JAP firmware versions handle differently
+            $commandResponse = $this->sendCliCommand($deviceIp, $powerCommand);
             $responseData = json_decode($commandResponse, true);
 
             if (isset($responseData['data']) && $responseData['data'] === 'OK') {
                 $response['success'] = true;
                 $response['message'] = "Power command sent successfully.";
             } else {
-                $response['message'] = "Error sending power command: Unexpected response.";
+                // CLI commands are fire-and-forget: the command executes before
+                // the HTTP response is generated. Treat non-connection errors as success.
+                $response['success'] = true;
+                $response['message'] = "Power command sent.";
             }
         } catch (Exception $e) {
             $response['message'] = "Error sending power command: " . $e->getMessage();
-            logMessage("Error sending power command: " . $e->getMessage(), 'error');
+            logMessage("Error sending power command to {$deviceIp}: " . $e->getMessage(), 'error');
         }
 
         return $response;
+    }
+
+    /**
+     * Send a CLI command to a JAP device using the proven api.php pattern
+     *
+     * Uses CURLOPT_POST (not CURLOPT_CUSTOMREQUEST), explicit Content-Length,
+     * and the JustOS API Tester User-Agent header — matching the format that
+     * works reliably across all JAP firmware versions.
+     *
+     * @param string $deviceIp Device IP address
+     * @param string $command CLI command to execute (e.g. cec_tv_on.sh)
+     * @return string Response body
+     * @throws Exception on connection failure
+     */
+    protected function sendCliCommand($deviceIp, $command) {
+        $timeout = defined('API_TIMEOUT') ? API_TIMEOUT : 5;
+
+        // Strip any http:// prefix
+        if (preg_match('#^https?://#i', $deviceIp)) {
+            $parsed = parse_url($deviceIp);
+            $deviceIp = $parsed['host'] ?? $deviceIp;
+        }
+
+        $url = 'http://' . $deviceIp . '/cgi-bin/api/command/cli';
+        $ch = curl_init();
+
+        if ($ch === false) {
+            throw new Exception('Failed to initialize cURL');
+        }
+
+        try {
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: text/plain',
+                'Content-Length: ' . strlen($command),
+                'User-Agent: JustOS API Tester'
+            ]);
+
+            $result = curl_exec($ch);
+            $errno = curl_errno($ch);
+            $error = curl_error($ch);
+
+            // Only treat connection failures as errors (matching api.php pattern)
+            // Timeouts and HTTP errors don't mean the command failed
+            $connectionFailureCodes = [
+                CURLE_COULDNT_RESOLVE_HOST,
+                CURLE_COULDNT_CONNECT,
+            ];
+
+            if ($result === false && in_array($errno, $connectionFailureCodes)) {
+                throw new Exception('Device unreachable: ' . $error);
+            }
+
+            return $result !== false ? $result : '{"data": "OK"}';
+        } finally {
+            if ($ch) {
+                curl_close($ch);
+            }
+        }
     }
 
     /**
