@@ -70,11 +70,11 @@ function generateReceiverForms() {
 function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, $volumeStep) {
     $deviceIp = $settings['ip'] ?? '';
     $showPower = isset($settings['show_power']) ? (bool)$settings['show_power'] : true;
-    $powerOnCommand = $settings['power_on_command'] ?? 'cec_tv_on.sh';
+    $powerOnCommand = $settings['power_on_command'] ?? 'cec_power_on_tv';
     $powerOffCommand = $settings['power_off_command'] ?? 'cec_tv_off.sh';
     $powerOnRepeat = isset($settings['power_on_repeat']) ? (bool)$settings['power_on_repeat'] : true;
-    $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? '';
-    $powerOnFollowupFallbackCommand = $settings['power_on_followup_fallback_command'] ?? '';
+    $powerOnFollowupCommand = $settings['power_on_followup_command'] ?? 'cec_watch_me.sh';
+    $powerOnFollowupFallbackCommand = $settings['power_on_followup_fallback_command'] ?? 'cec_power_on_tv';
     $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 5000;
     $powerOffPreCommand = $settings['power_off_pre_command'] ?? '';
     $powerOffPreDelayMs = isset($settings['power_off_pre_delay_ms']) ? (int)$settings['power_off_pre_delay_ms'] : 3000;
