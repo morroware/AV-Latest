@@ -31,7 +31,7 @@ const RECEIVERS = [
         'power_on_followup_delay_ms' => 9000,
         'power_off_pre_command' => 'cec_watch_me.sh',
         'power_off_pre_delay_ms' => 3000,
-        'power_off_command' => 'cec_tv_off.sh'
+        'power_off_command' => 'cec_power_off_tv'
     ],
     'Left DJ TV' => [
         'ip' => '192.168.8.27',
