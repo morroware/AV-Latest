@@ -45,16 +45,14 @@ function rebootDevice($ip) {
     }
 
     try {
-        $jsonBody = json_encode(['cmd' => 'reboot']);
         curl_setopt($ch, CURLOPT_URL, "http://{$ip}/cgi-bin/api/command/cli");
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, 'reboot');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 3);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($jsonBody),
-            'User-Agent: JustOS API Tester'
+            'Content-Type: text/plain',
+            'Content-Length: 6'
         ]);
 
         $response = curl_exec($ch);

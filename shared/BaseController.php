@@ -153,96 +153,29 @@ class BaseController {
         }
 
         $powerCommand = sanitizeInput($_POST['power_command'], 'string');
+        $rawCommand = $_POST['power_command'] ?? '';
+
+        // Debug log: capture exactly what we send and receive
+        logMessage("POWER DEBUG [{$deviceIp}]: raw='{$rawCommand}' sanitized='{$powerCommand}'", 'error');
 
         try {
-            // Send CLI command using the same proven pattern as api.php and reboot.php
-            // (CURLOPT_POST + User-Agent + Content-Length) instead of makeApiCall's
-            // CURLOPT_CUSTOMREQUEST which some JAP firmware versions handle differently
-            $commandResponse = $this->sendCliCommand($deviceIp, $powerCommand);
+            $commandResponse = makeApiCall('POST', $deviceIp, 'command/cli', $powerCommand, 'text/plain');
             $responseData = json_decode($commandResponse, true);
+
+            logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'error');
 
             if (isset($responseData['data']) && $responseData['data'] === 'OK') {
                 $response['success'] = true;
                 $response['message'] = "Power command sent successfully.";
             } else {
-                // CLI commands are fire-and-forget: the command executes before
-                // the HTTP response is generated. Treat non-connection errors as success.
-                $response['success'] = true;
-                $response['message'] = "Power command sent.";
+                $response['message'] = "Error sending power command: Unexpected response.";
             }
         } catch (Exception $e) {
+            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$e->getMessage()}'", 'error');
             $response['message'] = "Error sending power command: " . $e->getMessage();
-            logMessage("Error sending power command to {$deviceIp}: " . $e->getMessage(), 'error');
         }
 
         return $response;
-    }
-
-    /**
-     * Send a CLI command to a JAP device using the documented JustOS JSON API format
-     *
-     * The JustOS HTTP API /command/cli endpoint expects JSON body with a "cmd" key:
-     *   { "cmd": "cec_tv_on.sh" }
-     * Some firmware versions accept text/plain but others strictly require JSON,
-     * causing inconsistent CEC behavior across devices.
-     *
-     * @param string $deviceIp Device IP address
-     * @param string $command CLI command to execute (e.g. cec_tv_on.sh)
-     * @return string Response body
-     * @throws Exception on connection failure
-     */
-    protected function sendCliCommand($deviceIp, $command) {
-        $timeout = defined('API_TIMEOUT') ? API_TIMEOUT : 5;
-
-        // Strip any http:// prefix
-        if (preg_match('#^https?://#i', $deviceIp)) {
-            $parsed = parse_url($deviceIp);
-            $deviceIp = $parsed['host'] ?? $deviceIp;
-        }
-
-        $url = 'http://' . $deviceIp . '/cgi-bin/api/command/cli';
-        $ch = curl_init();
-
-        if ($ch === false) {
-            throw new Exception('Failed to initialize cURL');
-        }
-
-        try {
-            // Use JSON format as documented in JustOS HTTP API specification
-            $jsonBody = json_encode(['cmd' => $command]);
-
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($jsonBody),
-                'User-Agent: JustOS API Tester'
-            ]);
-
-            $result = curl_exec($ch);
-            $errno = curl_errno($ch);
-            $error = curl_error($ch);
-
-            // Only treat connection failures as errors
-            // Timeouts and HTTP errors don't mean the command failed
-            $connectionFailureCodes = [
-                CURLE_COULDNT_RESOLVE_HOST,
-                CURLE_COULDNT_CONNECT,
-            ];
-
-            if ($result === false && in_array($errno, $connectionFailureCodes)) {
-                throw new Exception('Device unreachable: ' . $error);
-            }
-
-            return $result !== false ? $result : '{"data": "OK"}';
-        } finally {
-            if ($ch) {
-                curl_close($ch);
-            }
-        }
     }
 
     /**
