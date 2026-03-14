@@ -667,22 +667,34 @@ function sendChannelNumber(channelNumber) {
 
 // Load favorite channels if available
 function loadFavoriteChannels() {
-    compatFetch('favorites.ini')
+    const favoritesUrl = new URL('favorites.ini', window.location.href).toString();
+
+    compatFetch(favoritesUrl)
         .then(response => {
-            if (!response.ok) return null;
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return response.text();
         })
         .then(data => {
-            if (!data) return;
-
             const container = document.getElementById('favorite-channels-select');
             if (!container) return;
 
+            if (!data) {
+                container.style.display = 'none';
+                return;
+            }
+
             const favorites = [];
-            const lines = data.split('\n').filter(line => line.trim() && !line.startsWith('[') && !line.startsWith(';'));
+            const lines = data
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('[') && !line.startsWith(';'));
 
             lines.forEach(line => {
-                const [key, value] = line.split('=').map(s => s.trim().replace(/"/g, ''));
+                const separatorIndex = line.indexOf('=');
+                if (separatorIndex === -1) return;
+
+                const key = line.slice(0, separatorIndex).trim().replace(/"/g, '');
+                const value = line.slice(separatorIndex + 1).trim().replace(/"/g, '');
                 if (key && value) {
                     favorites.push({ key, value });
                 }
