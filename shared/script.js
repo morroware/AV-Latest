@@ -401,10 +401,23 @@ function sendCommandInBatches(items, commandFn, batchSize, staggerMs) {
  * Phase 5: Retry cec_watch_me.sh in batches
  */
 function sendPhasedPowerOn(receivers, options) {
-    // Phase 1: Send all power-on commands
+    // Phase 1a: Send configured power-on command to all devices
     return sendCommandInBatches(receivers, function(r) {
         var powerOnCommand = r.element.dataset.powerOnCommand || 'cec_tv_on.sh';
         return sendPowerCommand(r.ip, powerOnCommand, false).catch(function() { return null; });
+    })
+    .then(function() {
+        // Phase 1b: Send alternative power-on command for belt-and-suspenders CEC reliability.
+        // JAP devices return OK even if the TV ignores the CEC command, so we can't rely on
+        // error-based fallback. Send both cec_tv_on.sh and cec_power_on_tv to maximize chances.
+        return waitMs(1500);
+    })
+    .then(function() {
+        return sendCommandInBatches(receivers, function(r) {
+            var primary = r.element.dataset.powerOnCommand || 'cec_tv_on.sh';
+            var alt = (primary === 'cec_power_on_tv') ? 'cec_tv_on.sh' : 'cec_power_on_tv';
+            return sendPowerCommand(r.ip, alt, false).catch(function() { return null; });
+        });
     })
     .then(function() {
         // On repeat pass, skip follow-up phases (input was already switched on first pass)
@@ -425,27 +438,42 @@ function sendPhasedPowerOn(receivers, options) {
         // Phase 2: Wait for TVs to stabilize after power-on
         return waitMs(maxDelay)
             .then(function() {
-                // Phase 3: Send follow-up (input switch) to all devices
+                // Phase 3: Send follow-up (cec_watch_me.sh) to all devices
                 return sendCommandInBatches(followupReceivers, function(r) {
                     return sendPowerCommand(r.ip, r.element.dataset.powerOnFollowupCommand, false)
                         .catch(function() { return null; });
                 });
             })
             .then(function() {
-                // Phase 4: Brief wait before retry
+                // Phase 4: Wait, then send BOTH follow-up AND fallback commands.
+                // JAP devices return OK even when the TV ignores the CEC command,
+                // so error-based fallback never triggers. Always send both commands.
                 return waitMs(3000);
             })
             .then(function() {
-                // Phase 5: Retry follow-up for CEC reliability
+                // Phase 5a: Retry follow-up command
                 return sendCommandInBatches(followupReceivers, function(r) {
                     return sendPowerCommand(r.ip, r.element.dataset.powerOnFollowupCommand, false)
-                        .catch(function() {
-                            var fallback = r.element.dataset.powerOnFollowupFallbackCommand;
-                            if (fallback) {
-                                return sendPowerCommand(r.ip, fallback, false).catch(function() { return null; });
-                            }
-                            return null;
-                        });
+                        .catch(function() { return null; });
+                });
+            })
+            .then(function() {
+                // Phase 5b: Also send fallback command (e.g. cec_power_on_tv) which may
+                // include Active Source on some devices, providing an alternative input switch
+                var fallbackReceivers = followupReceivers.filter(function(r) {
+                    return Boolean(r.element.dataset.powerOnFollowupFallbackCommand);
+                });
+                if (fallbackReceivers.length === 0) return;
+                return waitMs(1500);
+            })
+            .then(function() {
+                var fallbackReceivers = followupReceivers.filter(function(r) {
+                    return Boolean(r.element.dataset.powerOnFollowupFallbackCommand);
+                });
+                if (fallbackReceivers.length === 0) return;
+                return sendCommandInBatches(fallbackReceivers, function(r) {
+                    return sendPowerCommand(r.ip, r.element.dataset.powerOnFollowupFallbackCommand, false)
+                        .catch(function() { return null; });
                 });
             });
     });
