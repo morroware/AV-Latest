@@ -295,7 +295,7 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
     const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
-    const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
+    const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 7000;
     const shouldSendFollowup = Boolean(followupCommand);
 
     // Some displays may still react to power-on even when the HTTP request itself fails/times out.
@@ -310,20 +310,19 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
                 return response;
             }
 
+            // Send follow-up (input switch) after delay, then retry once more
+            // for CEC reliability — displays sometimes miss a single command.
             return waitMs(Math.max(0, followupDelayMs))
+                .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
+                .then(() => waitMs(3000))
                 .then(() => sendPowerCommand(deviceIp, followupCommand, false)
                     .catch(function(error) {
                         if (!followupFallbackCommand) {
-                            throw error;
+                            return null;
                         }
-
-                        console.warn('Primary follow-up command failed, trying fallback command:', error);
-                        return sendPowerCommand(deviceIp, followupFallbackCommand, false);
+                        console.warn('Follow-up retry failed, trying fallback command:', error);
+                        return sendPowerCommand(deviceIp, followupFallbackCommand, false).catch(() => null);
                     }))
-                .catch(function(error) {
-                    console.warn('Power-on follow-up sequence failed:', error);
-                    return response;
-                })
                 .then(() => response);
         });
 }
