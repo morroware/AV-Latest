@@ -478,16 +478,21 @@ const RECEIVERS = [
     'Display Name' => [
         'ip' => '192.168.8.XX',    // Device IP address
         'show_power' => true,       // Show power on/off buttons
-        'power_on_command' => 'cec_tv_on.sh',   // Optional per-device power-on CLI command
-        'power_off_command' => 'cec_tv_off.sh', // Optional per-device power-off CLI command
+        'power_on_command' => 'cec_tv_on.sh',   // Optional per-device power-on CLI command (or cec_power_on_tv)
+        'power_off_command' => 'cec_tv_off.sh', // Optional per-device power-off CLI command (or cec_power_off_tv)
         'power_on_repeat' => true,  // Optional: include in delayed second Power All On pass (30s)
         'power_on_followup_command' => 'cec_watch_me.sh', // Optional: follow-up CEC source-select command
-        'power_on_followup_fallback_command' => 'cec_power_on_tv', // Optional: fallback if primary fails
-        'power_on_followup_delay_ms' => 7000, // Optional delay before follow-up (default 5000ms)
+        'power_on_followup_fallback_command' => 'cec_power_on_tv', // Optional: alternate/fallback follow-up variant
+        'power_on_followup_delay_ms' => 7000, // Optional delay before follow-up (default 7000ms)
         'power_off_pre_command' => 'cec_watch_me.sh', // Optional: switch input before power off
         'power_off_pre_delay_ms' => 3000, // Optional delay before actual power off (default 3000ms)
     ],
 ];
+
+// Roku-targeted TVs often work best with:
+// power_on_command => 'cec_power_on_tv'
+// power_off_command => 'cec_power_off_tv'
+// power_off_pre_command => 'cec_watch_me.sh'
 
 // Transmitters: Input sources mapped to channel numbers
 const TRANSMITTERS = [
@@ -503,7 +508,7 @@ const VOLUME_STEP = 1;
 
 // API settings
 const API_TIMEOUT = 2;           // Seconds
-const LOG_LEVEL = 'error';       // debug, info, warning, error
+const LOG_LEVEL = 'error';       // debug, info, warn, error
 
 // System URLs
 const HOME_URL = '/';            // Relative path for home button
@@ -952,6 +957,15 @@ include_url       = true         # Include monitor URL in SMS
 
 ---
 
+
+### Roku/CEC Power Reliability
+
+Current power orchestration uses a phased/retry strategy:
+- **Single device Power On**: sends configured `power_on_command`, then alternate ON variant, then configured follow-up flow.
+- **Single device Power Off**: sends configured `power_off_command`, retries once, and can run `power_off_pre_command` + delay before standby.
+- **Power All On**: phased batches with a second pass at ~30s for devices with `power_on_repeat=true`.
+- **Roku targets in current deployment** (Billiards TV / Dining Area TV): include additional direct CEC ON/OFF fallbacks in client logic for reliability.
+
 ## Troubleshooting
 
 ### Authentication Issues
@@ -969,7 +983,7 @@ include_url       = true         # Include monitor URL in SMS
 | Connection timeout | Verify device IP in config.php, check network |
 | API errors | Confirm device is powered on and accessible |
 | Volume not changing | Device may not support volume (check model list) |
-| Power not working | Verify `show_power` is true and device supports CEC |
+| Power not working | Verify `show_power` is true, and confirm per-device power commands (`power_on_command`, `power_off_command`, follow-up/pre-off settings) match the TV model |
 | Receiver shows "Loading..." | Wait a few seconds; device may be unreachable |
 
 ### IR Commands

@@ -119,10 +119,12 @@ Use the Zone Manager (`zonemanager.php`) or manually:
 ### Configuration Constants (in zone config.php)
 
 - `RECEIVERS` - Array of device name => [ip, show_power, power commands]
+  - Power-related optional keys: `power_on_command`, `power_off_command`, `power_on_repeat`, `power_on_followup_command`, `power_on_followup_fallback_command`, `power_on_followup_delay_ms`, `power_off_pre_command`, `power_off_pre_delay_ms`
+  - Roku-targeted power behavior in current deployment uses `cec_power_on_tv` / `cec_power_off_tv` with `cec_watch_me.sh` sequencing
 - `TRANSMITTERS` - Array of source name => channel number
 - `MAX_VOLUME` / `MIN_VOLUME` / `VOLUME_STEP` - Volume limits
 - `API_TIMEOUT` - Seconds for device API calls (default: 2)
-- `LOG_LEVEL` - debug, info, warning, error
+- `LOG_LEVEL` - debug, info, warn, error
 - `LOG_FILE` - Path to zone activity log (default: `__DIR__ . '/av_controls.log'`)
 - `HOME_URL` - Home navigation target (default: `/`)
 - `REMOTE_CONTROL_COMMANDS` - Whitelist of valid IR remote actions
