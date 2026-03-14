@@ -6,15 +6,15 @@
 
 const RECEIVERS = [
     'Bar TV Left' => [
-        'ip' => '192.168.8.19',
+        'ip' => '192.168.8.33',
         'show_power' => true
     ],
     'Bar TV Right' => [
-        'ip' => '192.168.8.69',
+        'ip' => '192.168.8.37',
         'show_power' => true
     ],
     'Dining Area TV' => [
-        'ip' => '192.168.8.70',
+        'ip' => '192.168.8.44',
         'show_power' => true,
         'power_on_command' => 'cec_power_on_tv',
         'power_on_repeat' => false,
@@ -27,15 +27,15 @@ const RECEIVERS = [
 ];
 
 const TRANSMITTERS = [
-    'Apple TV' => 1,
-    'RockBot Audio' => 2,
+    'Apple TV' => 9,
+    'RockBot Audio' => 5,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 1 (Attic TX 1)' => 4,
-    'Mobile Video TX' => 5,
-    'Wireless Mic TX' => 6,
-    'Cable Box 3 (Attic TX 3)' => 7,
-    'Unifi Signage' => 8,
-    'Trivia (Spare TX 2)' => 9,
+    'Cable Box 1 (Attic TX 1)' => 7,
+    'Mobile Video TX' => 2,
+    'Wireless Mic TX' => 8,
+    'Cable Box 3 (Attic TX 3)' => 4,
+    'Unifi Signage' => 6,
+    'Trivia (Spare TX 2)' => 1,
 ];
 
 const MAX_VOLUME = 11;

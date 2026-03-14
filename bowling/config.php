@@ -6,33 +6,33 @@
 
 const RECEIVERS = [
     'Bowling Music' => [
-        'ip' => '192.168.8.75',
+        'ip' => '192.168.8.34',
         'show_power' => false
     ],
     'NeoVerse 1' => [
-        'ip' => '192.168.8.72',
+        'ip' => '192.168.8.21',
         'show_power' => false
     ],
     'NeoVerse 2' => [
-        'ip' => '192.168.8.71',
+        'ip' => '192.168.8.25',
         'show_power' => false
     ],
     'NeoVerse 3' => [
-        'ip' => '192.168.8.80',
+        'ip' => '192.168.8.36',
         'show_power' => false
     ],
 ];
 
 const TRANSMITTERS = [
-    'Apple TV' => 1,
-    'RockBot Audio' => 2,
+    'Apple TV' => 9,
+    'RockBot Audio' => 5,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 1 (Attic TX 1)' => 4,
-    'Mobile Video TX' => 5,
-    'Wireless Mic TX' => 6,
-    'Cable Box 3 (Attic TX 3)' => 7,
-    'Unifi Signage' => 8,
-    'Trivia (Spare TX 2)' => 9,
+    'Cable Box 1 (Attic TX 1)' => 7,
+    'Mobile Video TX' => 2,
+    'Wireless Mic TX' => 8,
+    'Cable Box 3 (Attic TX 3)' => 4,
+    'Unifi Signage' => 6,
+    'Trivia (Spare TX 2)' => 1,
 ];
 
 const MAX_VOLUME = 10;

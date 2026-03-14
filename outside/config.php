@@ -6,7 +6,7 @@
 
 const RECEIVERS = [
     'Driving Range Music RX' => [
-        'ip' => '192.168.8.66',
+        'ip' => '192.168.8.20',
         'show_power' => false
     ],
 ];
