@@ -184,13 +184,13 @@ function initializeReceiverControls() {
     // Power On button handler with delayed second command
     $('#power-all-on').on('click', function() {
         // No response message - send command silently
-        sendPowerCommandToAll('cec_tv_on.sh', false)
+        sendPowerCommandToAll('cec_power_on_tv', false)
             .then(function() {
                 console.log("First power-on command sent, will repeat in 30 seconds");
-                
+
                 // Set a timer to send the command again after 30 seconds
                 setTimeout(function() {
-                    sendPowerCommandToAll('cec_tv_on.sh', false, { repeatPass: true })
+                    sendPowerCommandToAll('cec_power_on_tv', false, { repeatPass: true })
                         .then(function() {
                             console.log("Second power-on command sent");
                         });
@@ -292,7 +292,7 @@ function waitMs(ms) {
 }
 
 function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
-    const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
+    const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_power_on_tv';
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 5000;
@@ -354,7 +354,7 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
 }
 
 function resolvePowerCommand(receiverElement, fallbackCommand) {
-    const isPowerOn = fallbackCommand === 'cec_tv_on.sh';
+    const isPowerOn = fallbackCommand === 'cec_power_on_tv' || fallbackCommand === 'cec_tv_on.sh';
     const command = isPowerOn
         ? receiverElement.dataset.powerOnCommand
         : receiverElement.dataset.powerOffCommand;
@@ -368,7 +368,7 @@ function sendPowerCommandToAll(command, showNotification = true, options = {}) {
 
     receivers.each(function() {
         const powerCommand = resolvePowerCommand(this, command);
-        const isPowerOn = command === 'cec_tv_on.sh';
+        const isPowerOn = command === 'cec_power_on_tv' || command === 'cec_tv_on.sh';
 
         // Skip second-pass power-on for receivers configured without repeat (e.g., toggle-only displays)
         if (options.repeatPass && this.dataset.powerOnRepeat === '0') {
