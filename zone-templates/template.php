@@ -11,6 +11,11 @@
 $zoneName = basename(__DIR__);
 $zoneDisplayName = ucwords(str_replace(['_', '-'], ' ', $zoneName));
 $settingsPath = "../settings.php?zone=" . urlencode($zoneName);
+
+// Cache-busting version based on file modification time
+$cssVersion = @filemtime(dirname(__DIR__) . '/shared/styles.css') ?: 0;
+$jsVersion = @filemtime(dirname(__DIR__) . '/shared/script.js') ?: 0;
+$compatVersion = @filemtime(dirname(__DIR__) . '/livecode-compat.js') ?: 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -18,11 +23,11 @@ $settingsPath = "../settings.php?zone=" . urlencode($zoneName);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($zoneDisplayName); ?> - Castle AV Controls</title>
-    <link rel="stylesheet" href="../shared/styles.css">
+    <link rel="stylesheet" href="../shared/styles.css?v=<?php echo $cssVersion; ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <!-- LiveCode browser widget compatibility layer -->
-    <script src="../livecode-compat.js"></script>
-    <script src="../shared/script.js"></script>
+    <script src="../livecode-compat.js?v=<?php echo $compatVersion; ?>"></script>
+    <script src="../shared/script.js?v=<?php echo $jsVersion; ?>"></script>
 </head>
 <body>
     <div class="content-wrapper">
@@ -145,11 +150,12 @@ $settingsPath = "../settings.php?zone=" . urlencode($zoneName);
             }
         }
     </script>
+
+    <footer>
+        <div id="wled-footer-controls" data-zone="<?php echo htmlspecialchars($zoneName); ?>">
+            <button class="button power-on">WLED Power On</button>
+            <button class="button power-off">WLED Power Off</button>
+        </div>
+    </footer>
 </body>
-<footer>
-    <div id="wled-footer-controls" data-zone="<?php echo htmlspecialchars($zoneName); ?>">
-        <button class="button power-on">WLED Power On</button>
-        <button class="button power-off">WLED Power Off</button>
-    </div>
-</footer>
 </html>

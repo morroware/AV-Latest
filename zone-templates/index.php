@@ -29,7 +29,7 @@ if ($controller->handleRequest()) {
 }
 
 // Check if any receivers are reachable before rendering the page
-$allReceiversUnreachable = $controller->checkReceiversReachable();
+$allReceiversUnreachable = $controller->areAllReceiversUnreachable();
 
 // Render the zone template
 include __DIR__ . '/template.php';

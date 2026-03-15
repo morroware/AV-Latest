@@ -160,6 +160,42 @@ function getEnabledZoneIds(): array
 }
 
 /**
+ * Load RECEIVERS constant from a zone's config.php in an isolated scope.
+ *
+ * Instead of parsing PHP source code with regex, this function evaluates the
+ * config file in a child process so that its define()/const statements don't
+ * collide with the current process's constants.
+ *
+ * @param string $zoneId The zone directory name
+ * @return array The RECEIVERS array, or empty array on failure
+ */
+function loadZoneReceivers(string $zoneId): array
+{
+    $configFile = dirname(__DIR__) . '/' . $zoneId . '/config.php';
+    if (!file_exists($configFile)) {
+        return [];
+    }
+
+    // Use a child PHP process to load the config in isolation and export RECEIVERS as JSON
+    $script = sprintf(
+        'require %s; echo defined("RECEIVERS") ? json_encode(RECEIVERS) : "{}";',
+        var_export($configFile, true)
+    );
+    $command = sprintf('php -r %s 2>/dev/null', escapeshellarg($script));
+
+    $output = [];
+    $exitCode = 0;
+    exec($command, $output, $exitCode);
+
+    if ($exitCode !== 0 || empty($output)) {
+        return [];
+    }
+
+    $result = json_decode(implode('', $output), true);
+    return is_array($result) ? $result : [];
+}
+
+/**
  * Get list of zones visible in navigation
  *
  * @return array List of zone configurations
@@ -518,7 +554,7 @@ if ($controller->handleRequest()) {
     // AJAX request was handled
 }
 
-$allReceiversUnreachable = $controller->checkReceiversReachable();
+$allReceiversUnreachable = $controller->areAllReceiversUnreachable();
 
 include __DIR__ . '/template.php';
 
@@ -529,18 +565,24 @@ PHP;
 
     // template.php
     $templateContent = <<<'PHP'
-<?php $zoneName = basename(__DIR__); $settingsPath = "../settings.php?zone=" . urlencode($zoneName); ?>
+<?php
+$zoneName = basename(__DIR__);
+$settingsPath = "../settings.php?zone=" . urlencode($zoneName);
+$cssVersion = @filemtime(dirname(__DIR__) . '/shared/styles.css') ?: 0;
+$jsVersion = @filemtime(dirname(__DIR__) . '/shared/script.js') ?: 0;
+$compatVersion = @filemtime(dirname(__DIR__) . '/livecode-compat.js') ?: 0;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Castle AV Control System</title>
-    <link rel="stylesheet" href="../shared/styles.css">
+    <link rel="stylesheet" href="../shared/styles.css?v=<?php echo $cssVersion; ?>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <!-- LiveCode browser widget compatibility layer -->
-    <script src="../livecode-compat.js"></script>
-    <script src="../shared/script.js"></script>
+    <script src="../livecode-compat.js?v=<?php echo $compatVersion; ?>"></script>
+    <script src="../shared/script.js?v=<?php echo $jsVersion; ?>"></script>
 </head>
 <body>
     <div class="content-wrapper">
@@ -633,6 +675,7 @@ PHP;
     </div>
 
     <script>
+        window.TRANSMITTERS = <?php echo getTransmittersJson(); ?>;
         function handleLogoClick(event) {
             if (event.ctrlKey) {
                 window.location.href = '<?php echo $settingsPath; ?>';

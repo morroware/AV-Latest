@@ -11,12 +11,12 @@
  */
 
 // Set default values for configuration constants if they're not defined
-if (!defined('API_TIMEOUT')) define('API_TIMEOUT', 5);
+if (!defined('API_TIMEOUT')) define('API_TIMEOUT', 2);
 if (!defined('LOG_LEVEL')) define('LOG_LEVEL', 'error');
 if (!defined('MAX_VOLUME')) define('MAX_VOLUME', 11);
 if (!defined('MIN_VOLUME')) define('MIN_VOLUME', 0);
 if (!defined('VOLUME_STEP')) define('VOLUME_STEP', 1);
-if (!defined('HOME_URL')) define('HOME_URL', 'http://localhost');
+if (!defined('HOME_URL')) define('HOME_URL', '/');
 if (!defined('ERROR_MESSAGES')) {
     define('ERROR_MESSAGES', [
         'connection' => 'Unable to connect to %s (%s). Please check the connection and try again.',
@@ -329,15 +329,6 @@ function setDspAudioState($deviceIp, $type, $enabled) {
     }
 }
 
-/** @deprecated Use setDspAudioState($deviceIp, 'line', false) */
-function disableDspLineAudio($deviceIp) { return setDspAudioState($deviceIp, 'line', false); }
-/** @deprecated Use setDspAudioState($deviceIp, 'line', true) */
-function enableDspLineAudio($deviceIp) { return setDspAudioState($deviceIp, 'line', true); }
-/** @deprecated Use setDspAudioState($deviceIp, 'hdmi', false) */
-function disableDspHdmiAudio($deviceIp) { return setDspAudioState($deviceIp, 'hdmi', false); }
-/** @deprecated Use setDspAudioState($deviceIp, 'hdmi', true) */
-function enableDspHdmiAudio($deviceIp) { return setDspAudioState($deviceIp, 'hdmi', true); }
-
 /**
  * Disable HDMI audio (mute)
  */
@@ -416,8 +407,8 @@ function setChannelWithoutPopping($deviceIp, $channel) {
 
         // Step 2: Disable audio outputs
         if ($supportsDsp) {
-            disableDspLineAudio($deviceIp);
-            disableDspHdmiAudio($deviceIp);
+            setDspAudioState($deviceIp, 'line', false);
+            setDspAudioState($deviceIp, 'hdmi', false);
         }
         disableHdmiAudio($deviceIp);
         disableStereoAudio($deviceIp);
@@ -442,8 +433,8 @@ function setChannelWithoutPopping($deviceIp, $channel) {
             enableStereoAudio($deviceIp);
             enableHdmiAudio($deviceIp);
             if ($supportsDsp) {
-                enableDspHdmiAudio($deviceIp);
-                enableDspLineAudio($deviceIp);
+                setDspAudioState($deviceIp, 'hdmi', true);
+                setDspAudioState($deviceIp, 'line', true);
             }
         }
 

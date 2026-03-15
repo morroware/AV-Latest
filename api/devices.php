@@ -15,43 +15,36 @@ header('Access-Control-Allow-Origin: *');
 $baseDir = dirname(__DIR__);
 $devices = [];
 
-// ---- 1. Zone Receivers (from each zone's config.php) ----
-$zonesFile = $baseDir . '/zones.json';
-$zonesData = [];
-if (file_exists($zonesFile)) {
-    $zonesData = json_decode(file_get_contents($zonesFile), true) ?? [];
-}
+// Load shared zone utilities for safe config loading
+require_once $baseDir . '/shared/zones.php';
 
-$zoneList = $zonesData['zones'] ?? [];
+// ---- 1. Zone Receivers (from each zone's config.php) ----
+$zonesConfig = loadZonesConfig();
+$zoneList = $zonesConfig['zones'] ?? [];
 $zoneReceivers = [];
 
 foreach ($zoneList as $zone) {
     $zoneId = $zone['id'] ?? '';
-    $configFile = $baseDir . '/' . $zoneId . '/config.php';
-    if (!$zoneId || !file_exists($configFile)) continue;
+    if (!$zoneId) continue;
 
-    // Parse receivers from config.php without executing it (to avoid constant redefinition)
-    $content = file_get_contents($configFile);
+    // Load receivers using isolated-scope loader (no regex, no constant conflicts)
+    $receivers = loadZoneReceivers($zoneId);
 
-    // Extract RECEIVERS array using regex
-    if (preg_match_all("/\\'([^']+)\\'\s*=>\s*\\[\s*\\'ip\\'\s*=>\s*\\'([^']+)\\'/", $content, $matches, PREG_SET_ORDER)) {
-        foreach ($matches as $match) {
-            $name = trim($match[1]);
-            $ip = trim($match[2]);
-            $hasPower = (strpos($content, "'show_power' => true") !== false);
+    foreach ($receivers as $name => $config) {
+        $ip = $config['ip'] ?? '';
+        if (empty($ip)) continue;
 
-            $key = $ip; // deduplicate by IP
-            if (!isset($zoneReceivers[$key])) {
-                $zoneReceivers[$key] = [
-                    'name' => $name,
-                    'ip' => $ip,
-                    'category' => 'av-receivers',
-                    'zones' => []
-                ];
-            }
-            if (!in_array($zone['name'] ?? $zoneId, $zoneReceivers[$key]['zones'])) {
-                $zoneReceivers[$key]['zones'][] = $zone['name'] ?? $zoneId;
-            }
+        $key = $ip; // deduplicate by IP
+        if (!isset($zoneReceivers[$key])) {
+            $zoneReceivers[$key] = [
+                'name' => $name,
+                'ip' => $ip,
+                'category' => 'av-receivers',
+                'zones' => []
+            ];
+        }
+        if (!in_array($zone['name'] ?? $zoneId, $zoneReceivers[$key]['zones'])) {
+            $zoneReceivers[$key]['zones'][] = $zone['name'] ?? $zoneId;
         }
     }
 }
