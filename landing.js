@@ -135,7 +135,7 @@
                     '<a href="outside/" class="button">Outside</a>' +
                     '<a href="all/" class="button">ALL</a>' +
                     '<a href="multi/" class="button">Multi</a>' +
-                    '<a href="devices.php" class="button special-link">Device Directory</a>';
+                    '<a href="devices/" class="button special-link">Device Directory</a>';
             });
     }
 
