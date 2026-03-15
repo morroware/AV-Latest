@@ -3,7 +3,7 @@
  * Clean, scannable device management interface
  *
  * @author Seth Morrow
- * @version 4.0.0
+ * @version 4.1.0
  * @copyright 2025-2026
  */
 
@@ -13,7 +13,7 @@ class AVDashboard {
         this.activeFilter = 'all';
         this.searchQuery = '';
         this.viewMode = 'list';
-        this.pendingReboot = null; // {ip, name} for single-device modal
+        this.pendingReboot = null;
         this.init();
     }
 
@@ -31,7 +31,7 @@ class AVDashboard {
         this.devices = (window.DEVICE_DATA || []).map((d, i) => ({
             ip: d.ip || null,
             name: d.name,
-            type: d.type,           // tx | rx
+            type: d.type,
             deviceType: d.deviceType || '',
             channel: d.channel || null,
             status: 'checking',
@@ -84,6 +84,14 @@ class AVDashboard {
             if (e.target.id === 'reboot-modal') this.hideModal('reboot-modal');
         });
 
+        // Row/card click → open device Web UI (delegated)
+        $(document).on('click', '.row[data-ip], .card[data-ip]', function (e) {
+            // Don't navigate if they clicked a link or button inside
+            if ($(e.target).closest('a, button').length) return;
+            const ip = $(this).data('ip');
+            if (ip) window.open('http://' + ip, '_blank');
+        });
+
         // Single reboot flow (delegated)
         $(document).on('click', '.row-reboot, .card-reboot', (e) => {
             e.preventDefault();
@@ -100,15 +108,6 @@ class AVDashboard {
             if (e.target.id === 'single-reboot-modal') this.hideModal('single-reboot-modal');
         });
 
-        // Stop reboot/action clicks from triggering the row/card link
-        $(document).on('click', '.row-action, .card-actions .btn', function (e) {
-            e.stopPropagation();
-            // For buttons inside <a> tags, also prevent navigation
-            if (!$(this).is('a')) {
-                e.preventDefault();
-            }
-        });
-
         // Escape to close modals
         $(document).on('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -123,7 +122,6 @@ class AVDashboard {
     filtered() {
         let list = [...this.devices];
 
-        // Filter by type / zone
         if (this.activeFilter === 'tx') {
             list = list.filter(d => d.type === 'tx');
         } else if (this.activeFilter === 'rx') {
@@ -132,7 +130,6 @@ class AVDashboard {
             list = list.filter(d => d.zone === this.activeFilter);
         }
 
-        // Search
         if (this.searchQuery) {
             list = list.filter(d =>
                 d.name.toLowerCase().includes(this.searchQuery) ||
@@ -150,7 +147,6 @@ class AVDashboard {
         const list = this.filtered();
         const $c = $('#device-container');
 
-        // Update count
         const label = list.length === 1 ? '1 device' : list.length + ' devices';
         $('#result-count').text(label);
 
@@ -175,14 +171,7 @@ class AVDashboard {
     }
 
     zoneLabel(z) {
-        return { bowling: 'Bowling', bowlingbar: 'Bowling Bar', rink: 'Rink', jesters: 'Jesters', facility: 'Facility', outside: 'Outside', attic: 'Attic', sources: 'Sources', other: 'Other' }[z] || z;
-    }
-
-    typeIcon(d) {
-        if (d.deviceType === 'audio') return 'audio';
-        if (d.deviceType === 'video') return 'video';
-        if (d.deviceType === 'source') return 'source';
-        return d.type;
+        return { bowling: 'Bowling', bowlingbar: 'Bowling Bar', rink: 'Rink', jesters: 'Jesters', facility: 'Facility', outside: 'Outside', attic: 'Attic', other: 'Other' }[z] || z;
     }
 
     // ── List row ───────────────────────────────────────────────────────
@@ -198,38 +187,34 @@ class AVDashboard {
             ? '<span class="badge badge-audio">Audio</span>'
             : '';
         const channelBadge = d.channel
-            ? `<span class="badge badge-channel">Ch ${d.channel}</span>`
+            ? '<span class="badge badge-channel">Ch ' + d.channel + '</span>'
             : '';
 
-        const actions = hasIp ? `
-            <a href="http://${d.ip}" target="_blank" rel="noopener" class="row-action row-webui" title="Open Web UI">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-            <button class="row-action row-reboot" data-ip="${d.ip}" data-name="${d.name}" title="Reboot device">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-            </button>
-        ` : '';
+        const actions = hasIp ? '<div class="row-actions">' +
+            '<a href="http://' + d.ip + '" target="_blank" rel="noopener" class="row-action row-webui" title="Open Web UI">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+            '</a>' +
+            '<button class="row-action row-reboot" data-ip="' + d.ip + '" data-name="' + d.name + '" title="Reboot device">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>' +
+            '</button>' +
+        '</div>' : '<div class="row-actions"></div>';
 
-        const ipLink = hasIp
-            ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="row-sub-link">${d.ip}</a>`
+        const ipDisplay = hasIp
+            ? '<a href="http://' + d.ip + '" target="_blank" rel="noopener" class="row-ip">' + d.ip + '</a>'
             : '';
 
-        const rowTag = hasIp ? 'a' : 'div';
-        const rowHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
-
-        return `
-        <${rowTag}${rowHref} class="row" data-id="${d.id}">
-            <span class="row-status status-dot ${statusCls}" title="${statusLabel}"></span>
-            <div class="row-info">
-                <span class="row-name">${d.name}</span>
-                <span class="row-sub">${ipLink}</span>
-            </div>
-            <div class="row-badges">
-                ${typeBadge}${channelBadge}${mediaBadge}
-                <span class="badge badge-zone">${this.zoneLabel(d.zone)}</span>
-            </div>
-            <div class="row-actions">${actions}</div>
-        </${rowTag}>`;
+        return '<div class="row' + (hasIp ? ' clickable' : '') + '" data-id="' + d.id + '"' + (hasIp ? ' data-ip="' + d.ip + '"' : '') + '>' +
+            '<span class="row-status status-dot ' + statusCls + '" title="' + statusLabel + '"></span>' +
+            '<div class="row-info">' +
+                '<span class="row-name">' + d.name + '</span>' +
+                '<span class="row-sub">' + ipDisplay + '</span>' +
+            '</div>' +
+            '<div class="row-badges">' +
+                typeBadge + channelBadge + mediaBadge +
+                '<span class="badge badge-zone">' + this.zoneLabel(d.zone) + '</span>' +
+            '</div>' +
+            actions +
+        '</div>';
     }
 
     // ── Grid card ──────────────────────────────────────────────────────
@@ -245,38 +230,34 @@ class AVDashboard {
             ? '<span class="badge badge-audio">Audio</span>'
             : '';
         const channelBadge = d.channel
-            ? `<span class="badge badge-channel">Ch ${d.channel}</span>`
+            ? '<span class="badge badge-channel">Ch ' + d.channel + '</span>'
             : '';
 
-        const actions = hasIp ? `
-            <div class="card-actions">
-                <a href="http://${d.ip}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm card-webui">Web UI</a>
-                <button class="btn btn-danger-outline btn-sm card-reboot" data-ip="${d.ip}" data-name="${d.name}">Reboot</button>
-            </div>
-        ` : '<div class="card-actions"><span class="card-source-label">No device control</span></div>';
+        const actions = hasIp
+            ? '<div class="card-actions">' +
+                '<a href="http://' + d.ip + '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm card-webui">Web UI</a>' +
+                '<button class="btn btn-danger-outline btn-sm card-reboot" data-ip="' + d.ip + '" data-name="' + d.name + '">Reboot</button>' +
+              '</div>'
+            : '<div class="card-actions"><span class="card-source-label">No IP assigned</span></div>';
 
-        const ipLink = hasIp
-            ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="card-ip-link">${d.ip}</a>`
+        const ipDisplay = hasIp
+            ? '<a href="http://' + d.ip + '" target="_blank" rel="noopener" class="card-ip">' + d.ip + '</a>'
             : '';
 
-        const cardTag = hasIp ? 'a' : 'div';
-        const cardHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
-
-        return `
-        <${cardTag}${cardHref} class="card" data-id="${d.id}">
-            <div class="card-top">
-                <div class="card-title">
-                    <span class="status-dot ${statusCls}" title="${statusLabel}"></span>
-                    <span class="card-name">${d.name}</span>
-                </div>
-                <div class="card-badges">${typeBadge}${channelBadge}${mediaBadge}</div>
-            </div>
-            <div class="card-meta">
-                ${ipLink}
-                <span class="badge badge-zone">${this.zoneLabel(d.zone)}</span>
-            </div>
-            ${actions}
-        </${cardTag}>`;
+        return '<div class="card' + (hasIp ? ' clickable' : '') + '" data-id="' + d.id + '"' + (hasIp ? ' data-ip="' + d.ip + '"' : '') + '>' +
+            '<div class="card-top">' +
+                '<div class="card-title">' +
+                    '<span class="status-dot ' + statusCls + '" title="' + statusLabel + '"></span>' +
+                    '<span class="card-name">' + d.name + '</span>' +
+                '</div>' +
+                '<div class="card-badges">' + typeBadge + channelBadge + mediaBadge + '</div>' +
+            '</div>' +
+            '<div class="card-meta">' +
+                ipDisplay +
+                '<span class="badge badge-zone">' + this.zoneLabel(d.zone) + '</span>' +
+            '</div>' +
+            actions +
+        '</div>';
     }
 
     // ── Status checking ────────────────────────────────────────────────
@@ -328,10 +309,10 @@ class AVDashboard {
     updateDots() {
         this.devices.forEach(d => {
             if (!d.ip) return;
-            const $el = $(`.row[data-id="${d.id}"] .row-status, .card[data-id="${d.id}"] .status-dot`);
-            $el.removeClass('dot-checking dot-online dot-offline dot-unknown')
-               .addClass('dot-' + d.status)
-               .attr('title', d.status);
+            const sel = '.row[data-id="' + d.id + '"] .row-status, .card[data-id="' + d.id + '"] .status-dot';
+            $(sel).removeClass('dot-checking dot-online dot-offline dot-unknown')
+                  .addClass('dot-' + d.status)
+                  .attr('title', d.status);
         });
     }
 
@@ -407,7 +388,7 @@ class AVDashboard {
         const icon = type === 'success'
             ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>'
             : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-        const $t = $(`<div id="${id}" class="toast toast-${type}">${icon}<span>${msg}</span></div>`);
+        const $t = $('<div id="' + id + '" class="toast toast-' + type + '">' + icon + '<span>' + msg + '</span></div>');
         $('#toasts').append($t);
         requestAnimationFrame(() => $t.addClass('show'));
         setTimeout(() => {

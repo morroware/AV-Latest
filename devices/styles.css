@@ -1,7 +1,7 @@
 /**
  * AV Device Manager Styles
  * Matches Castle AV site theme (glassmorphism dark)
- * @version 4.0.0
+ * @version 4.1.0
  */
 
 /* ── Variables ─────────────────────────────────────────────────── */
@@ -287,11 +287,8 @@ body {
     border-radius: var(--radius-sm);
     transition: background 0.12s, border-color 0.12s;
     min-height: 48px;
-    text-decoration: none;
-    color: inherit;
-    cursor: default;
 }
-a.row { cursor: pointer; }
+.row.clickable { cursor: pointer; }
 .row:hover {
     background: var(--surface-hover);
     border-color: var(--border-light);
@@ -321,12 +318,13 @@ a.row { cursor: pointer; }
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-.row-sub-link {
+.row-ip {
     color: var(--text-dim);
     text-decoration: none;
     transition: color 0.12s;
 }
-.row:hover .row-sub-link { color: var(--accent); }
+.row-ip:hover,
+.row:hover .row-ip { color: var(--accent); }
 
 .row-badges {
     display: flex;
@@ -338,7 +336,7 @@ a.row { cursor: pointer; }
     display: flex;
     gap: 0.25rem;
     flex-shrink: 0;
-    opacity: 0.5;
+    opacity: 0;
     transition: opacity 0.12s;
 }
 .row:hover .row-actions { opacity: 1; }
@@ -376,7 +374,6 @@ a.row { cursor: pointer; }
 .badge-tx { background: rgba(16, 185, 129, 0.15); color: var(--green); }
 .badge-rx { background: var(--primary-glow); color: var(--primary-light); }
 .badge-audio { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
-.badge-source { background: rgba(100, 116, 139, 0.2); color: var(--gray); }
 .badge-channel { background: rgba(34, 211, 238, 0.15); color: var(--accent); font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
 .badge-zone { background: rgba(255, 255, 255, 0.06); color: var(--text-dim); }
 
@@ -396,11 +393,8 @@ a.row { cursor: pointer; }
     flex-direction: column;
     gap: 0.55rem;
     transition: border-color 0.12s, box-shadow 0.15s;
-    text-decoration: none;
-    color: inherit;
-    cursor: default;
 }
-a.card { cursor: pointer; }
+.card.clickable { cursor: pointer; }
 .card:hover {
     border-color: var(--border-light);
     box-shadow: var(--shadow);
@@ -440,15 +434,16 @@ a.card { cursor: pointer; }
     align-items: center;
     font-size: 0.8rem;
     color: var(--text-dim);
-    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-.card-ip-link {
+.card-ip {
     color: var(--text-dim);
     text-decoration: none;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
     transition: color 0.12s;
 }
-.card:hover .card-ip-link { color: var(--accent); }
+.card-ip:hover,
+.card:hover .card-ip { color: var(--accent); }
 
 .card-actions {
     display: flex;
@@ -610,16 +605,6 @@ a.card { cursor: pointer; }
 
 /* ── Spinner ───────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.spinner {
-    display: inline-block;
-    width: 1em;
-    height: 1em;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: currentColor;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-}
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
