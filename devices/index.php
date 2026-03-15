@@ -38,20 +38,9 @@ class AVDashboard
                     $ips[] = $rx['ip'];
                 }
             }
-        }
-
-        $txFile = dirname(__DIR__) . '/dj/transmitters.txt';
-        if (file_exists($txFile)) {
-            $lines = file($txFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                $parts = str_getcsv(trim($line));
-                if (count($parts) >= 2) {
-                    $url = trim($parts[1]);
-                    $ip = str_replace(['http://', 'https://'], '', $url);
-                    $ip = rtrim($ip, '/');
-                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        $ips[] = $ip;
-                    }
+            foreach (($data['transmitters'] ?? []) as $tx) {
+                if (!empty($tx['ip']) && ($tx['enabled'] ?? true)) {
+                    $ips[] = $tx['ip'];
                 }
             }
         }
@@ -89,40 +78,19 @@ class AVDashboard
             ];
         }
 
-        $txFile = dirname(__DIR__) . '/dj/transmitters.txt';
-        if (file_exists($txFile)) {
-            $lines = file($txFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                $parts = str_getcsv(trim($line));
-                if (count($parts) >= 2) {
-                    $name = trim($parts[0]);
-                    $url = trim($parts[1]);
-                    $ip = str_replace(['http://', 'https://'], '', $url);
-                    $ip = rtrim($ip, '/');
-                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        $devices[] = [
-                            'ip' => $ip,
-                            'name' => $name . ' TX',
-                            'type' => 'tx',
-                            'deviceType' => 'ir-blaster',
-                            'show_power' => false,
-                            'zone' => 'attic',
-                        ];
-                    }
-                }
-            }
-        }
-
+        // Add transmitters from devices.json (now includes IPs)
         foreach (($devicesData['transmitters'] ?? []) as $tx) {
             if (!($tx['enabled'] ?? true)) continue;
+            $ip = $tx['ip'] ?? null;
             $devices[] = [
-                'ip' => null,
+                'ip' => $ip,
                 'name' => $tx['name'] ?? 'Unknown',
                 'type' => 'tx',
-                'deviceType' => 'source',
+                'deviceType' => 'transmitter',
                 'channel' => $tx['channel'] ?? 0,
+                'model' => $tx['model'] ?? '',
                 'show_power' => false,
-                'zone' => 'sources',
+                'zone' => 'attic',
             ];
         }
 

@@ -191,15 +191,15 @@ class AVDashboard {
         const hasIp = !!d.ip;
         const statusCls = hasIp ? 'dot-' + d.status : 'dot-source';
         const statusLabel = hasIp ? d.status : 'source';
-        const sub = hasIp ? d.ip : 'Ch ' + d.channel;
         const typeBadge = d.type === 'tx'
             ? '<span class="badge badge-tx">TX</span>'
             : '<span class="badge badge-rx">RX</span>';
         const mediaBadge = d.deviceType === 'audio'
             ? '<span class="badge badge-audio">Audio</span>'
-            : d.deviceType === 'source'
-                ? '<span class="badge badge-source">Source</span>'
-                : '';
+            : '';
+        const channelBadge = d.channel
+            ? `<span class="badge badge-channel">Ch ${d.channel}</span>`
+            : '';
 
         const actions = hasIp ? `
             <a href="http://${d.ip}" target="_blank" rel="noopener" class="row-action row-webui" title="Open Web UI">
@@ -212,7 +212,7 @@ class AVDashboard {
 
         const ipLink = hasIp
             ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="row-sub-link">${d.ip}</a>`
-            : `<span>Ch ${d.channel}</span>`;
+            : '';
 
         const rowTag = hasIp ? 'a' : 'div';
         const rowHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
@@ -225,7 +225,7 @@ class AVDashboard {
                 <span class="row-sub">${ipLink}</span>
             </div>
             <div class="row-badges">
-                ${typeBadge}${mediaBadge}
+                ${typeBadge}${channelBadge}${mediaBadge}
                 <span class="badge badge-zone">${this.zoneLabel(d.zone)}</span>
             </div>
             <div class="row-actions">${actions}</div>
@@ -238,15 +238,15 @@ class AVDashboard {
         const hasIp = !!d.ip;
         const statusCls = hasIp ? 'dot-' + d.status : 'dot-source';
         const statusLabel = hasIp ? d.status : 'source';
-        const sub = hasIp ? d.ip : 'Channel ' + d.channel;
         const typeBadge = d.type === 'tx'
             ? '<span class="badge badge-tx">TX</span>'
             : '<span class="badge badge-rx">RX</span>';
         const mediaBadge = d.deviceType === 'audio'
             ? '<span class="badge badge-audio">Audio</span>'
-            : d.deviceType === 'source'
-                ? '<span class="badge badge-source">Source</span>'
-                : '';
+            : '';
+        const channelBadge = d.channel
+            ? `<span class="badge badge-channel">Ch ${d.channel}</span>`
+            : '';
 
         const actions = hasIp ? `
             <div class="card-actions">
@@ -257,7 +257,7 @@ class AVDashboard {
 
         const ipLink = hasIp
             ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="card-ip-link">${d.ip}</a>`
-            : `<span>Channel ${d.channel}</span>`;
+            : '';
 
         const cardTag = hasIp ? 'a' : 'div';
         const cardHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
@@ -269,7 +269,7 @@ class AVDashboard {
                     <span class="status-dot ${statusCls}" title="${statusLabel}"></span>
                     <span class="card-name">${d.name}</span>
                 </div>
-                <div class="card-badges">${typeBadge}${mediaBadge}</div>
+                <div class="card-badges">${typeBadge}${channelBadge}${mediaBadge}</div>
             </div>
             <div class="card-meta">
                 ${ipLink}

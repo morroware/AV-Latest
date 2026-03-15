@@ -377,6 +377,7 @@ a.row { cursor: pointer; }
 .badge-rx { background: var(--primary-glow); color: var(--primary-light); }
 .badge-audio { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
 .badge-source { background: rgba(100, 116, 139, 0.2); color: var(--gray); }
+.badge-channel { background: rgba(34, 211, 238, 0.15); color: var(--accent); font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
 .badge-zone { background: rgba(255, 255, 255, 0.06); color: var(--text-dim); }
 
 /* ── Grid / card view ──────────────────────────────────────────── */
