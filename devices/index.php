@@ -305,6 +305,7 @@ $deviceDataJson = json_encode($dashboard->getDeviceData(), JSON_THROW_ON_ERROR);
                 <button class="chip" data-filter="jesters">Jesters</button>
                 <button class="chip" data-filter="facility">Facility</button>
                 <button class="chip" data-filter="outside">Outside</button>
+                <button class="chip" data-filter="attic">Attic</button>
             </div>
         </div>
 
