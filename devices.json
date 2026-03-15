@@ -177,48 +177,66 @@
     ],
     "transmitters": [
         {
-            "name": "Apple TV",
-            "channel": 9,
-            "enabled": true
-        },
-        {
-            "name": "RockBot Audio",
-            "channel": 5,
-            "enabled": true
-        },
-        {
-            "name": "Cable Box 2 (Attic TX 2)",
-            "channel": 3,
-            "enabled": true
-        },
-        {
-            "name": "Cable Box 1 (Attic TX 1)",
-            "channel": 7,
+            "name": "Trivia (Spare TX 2)",
+            "channel": 1,
+            "ip": "192.168.8.11",
+            "model": "3G-S TX",
             "enabled": true
         },
         {
             "name": "Mobile Video TX",
             "channel": 2,
+            "ip": "192.168.8.14",
+            "model": "3G TX",
             "enabled": true
         },
         {
-            "name": "Wireless Mic TX",
-            "channel": 8,
+            "name": "Cable Box 2 (Attic TX 2)",
+            "channel": 3,
+            "ip": "192.168.8.12",
+            "model": "3G TX",
             "enabled": true
         },
         {
             "name": "Cable Box 3 (Attic TX 3)",
             "channel": 4,
+            "ip": "192.168.8.17",
+            "model": "3G TX",
+            "enabled": true
+        },
+        {
+            "name": "RockBot Audio",
+            "channel": 5,
+            "ip": "192.168.8.15",
+            "model": "2G/3G SX-TX",
             "enabled": true
         },
         {
             "name": "Unifi Signage",
             "channel": 6,
+            "ip": "192.168.8.18",
+            "model": "3G-S TX",
             "enabled": true
         },
         {
-            "name": "Trivia (Spare TX 2)",
-            "channel": 1,
+            "name": "Cable Box 1 (Attic TX 1)",
+            "channel": 7,
+            "ip": "192.168.8.10",
+            "model": "3G TX",
+            "enabled": true
+        },
+        {
+            "name": "Wireless Mic TX",
+            "channel": 8,
+            "ip": "192.168.8.13",
+            "model": "2G/3G SX-TX",
+            "enabled": true
+        },
+        {
+            "name": "Apple TV",
+            "channel": 9,
+            "ip": "192.168.8.16",
+            "model": "3G-S TX",
             "enabled": true
         }
     ],
