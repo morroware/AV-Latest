@@ -86,6 +86,8 @@ class AVDashboard {
 
         // Single reboot flow (delegated)
         $(document).on('click', '.row-reboot, .card-reboot', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const $el = $(e.currentTarget);
             this.pendingReboot = { ip: $el.data('ip'), name: $el.data('name') };
             $('#single-reboot-name').text(this.pendingReboot.name);
@@ -98,9 +100,13 @@ class AVDashboard {
             if (e.target.id === 'single-reboot-modal') this.hideModal('single-reboot-modal');
         });
 
-        // Web UI links (delegated)
-        $(document).on('click', '.row-webui, .card-webui', function (e) {
+        // Stop reboot/action clicks from triggering the row/card link
+        $(document).on('click', '.row-action, .card-actions .btn', function (e) {
             e.stopPropagation();
+            // For buttons inside <a> tags, also prevent navigation
+            if (!$(this).is('a')) {
+                e.preventDefault();
+            }
         });
 
         // Escape to close modals
@@ -204,19 +210,26 @@ class AVDashboard {
             </button>
         ` : '';
 
+        const ipLink = hasIp
+            ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="row-sub-link">${d.ip}</a>`
+            : `<span>Ch ${d.channel}</span>`;
+
+        const rowTag = hasIp ? 'a' : 'div';
+        const rowHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
+
         return `
-        <div class="row" data-id="${d.id}">
+        <${rowTag}${rowHref} class="row" data-id="${d.id}">
             <span class="row-status status-dot ${statusCls}" title="${statusLabel}"></span>
             <div class="row-info">
                 <span class="row-name">${d.name}</span>
-                <span class="row-sub">${sub}</span>
+                <span class="row-sub">${ipLink}</span>
             </div>
             <div class="row-badges">
                 ${typeBadge}${mediaBadge}
                 <span class="badge badge-zone">${this.zoneLabel(d.zone)}</span>
             </div>
             <div class="row-actions">${actions}</div>
-        </div>`;
+        </${rowTag}>`;
     }
 
     // ── Grid card ──────────────────────────────────────────────────────
@@ -242,8 +255,15 @@ class AVDashboard {
             </div>
         ` : '<div class="card-actions"><span class="card-source-label">No device control</span></div>';
 
+        const ipLink = hasIp
+            ? `<a href="http://${d.ip}" target="_blank" rel="noopener" class="card-ip-link">${d.ip}</a>`
+            : `<span>Channel ${d.channel}</span>`;
+
+        const cardTag = hasIp ? 'a' : 'div';
+        const cardHref = hasIp ? ` href="http://${d.ip}" target="_blank" rel="noopener"` : '';
+
         return `
-        <div class="card" data-id="${d.id}">
+        <${cardTag}${cardHref} class="card" data-id="${d.id}">
             <div class="card-top">
                 <div class="card-title">
                     <span class="status-dot ${statusCls}" title="${statusLabel}"></span>
@@ -252,11 +272,11 @@ class AVDashboard {
                 <div class="card-badges">${typeBadge}${mediaBadge}</div>
             </div>
             <div class="card-meta">
-                <span>${sub}</span>
+                ${ipLink}
                 <span class="badge badge-zone">${this.zoneLabel(d.zone)}</span>
             </div>
             ${actions}
-        </div>`;
+        </${cardTag}>`;
     }
 
     // ── Status checking ────────────────────────────────────────────────

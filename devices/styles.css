@@ -287,7 +287,11 @@ body {
     border-radius: var(--radius-sm);
     transition: background 0.12s, border-color 0.12s;
     min-height: 48px;
+    text-decoration: none;
+    color: inherit;
+    cursor: default;
 }
+a.row { cursor: pointer; }
 .row:hover {
     background: var(--surface-hover);
     border-color: var(--border-light);
@@ -316,6 +320,13 @@ body {
     color: var(--text-dim);
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
+
+.row-sub-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.12s;
+}
+.row:hover .row-sub-link { color: var(--accent); }
 
 .row-badges {
     display: flex;
@@ -384,7 +395,11 @@ body {
     flex-direction: column;
     gap: 0.55rem;
     transition: border-color 0.12s, box-shadow 0.15s;
+    text-decoration: none;
+    color: inherit;
+    cursor: default;
 }
+a.card { cursor: pointer; }
 .card:hover {
     border-color: var(--border-light);
     box-shadow: var(--shadow);
@@ -426,6 +441,13 @@ body {
     color: var(--text-dim);
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
+
+.card-ip-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.12s;
+}
+.card:hover .card-ip-link { color: var(--accent); }
 
 .card-actions {
     display: flex;
