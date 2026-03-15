@@ -12,6 +12,9 @@ declare(strict_types=1);
  *  - Required zone files
  *  - JSON syntax for top-level JSON configs
  *  - PHP syntax for active runtime files (excluding backups)
+ *  - Receiver IP subnet consistency (192.168.8.x)
+ *  - WLED IP subnet consistency (192.168.6.x)
+ *  - Duplicate receiver IPs across zones
  *
  * Compatible with PHP 7.4+.
  */
@@ -175,11 +178,109 @@ function lintPhpFiles(string $root, array &$errors, int &$checks): void
     ok('PHP lint passed for all non-backup PHP files.');
 }
 
+/**
+ * Validate receiver IPs are in expected subnet and check for cross-zone duplicates
+ */
+function validateReceiverIps(string $root, array &$errors, array &$warnings, int &$checks): void
+{
+    $zonesPath = $root . '/zones.json';
+    if (!is_file($zonesPath)) return;
+
+    $zones = json_decode((string) file_get_contents($zonesPath), true);
+    if (!is_array($zones) || empty($zones['zones'])) return;
+
+    // Use the shared loader if available, otherwise fall back to subprocess
+    $loaderScript = $root . '/shared/zones.php';
+    $hasLoader = is_file($loaderScript);
+    if ($hasLoader) {
+        require_once $loaderScript;
+    }
+
+    $allReceivers = []; // ip => [zone1, zone2, ...]
+
+    foreach ($zones['zones'] as $zone) {
+        $zoneId = $zone['id'] ?? '';
+        if (!$zoneId) continue;
+
+        // Skip aggregation zones that dynamically load from other zones
+        if (in_array($zoneId, ['multi', 'all'])) continue;
+
+        $receivers = [];
+        if ($hasLoader) {
+            $receivers = loadZoneReceivers($zoneId);
+        }
+
+        foreach ($receivers as $name => $config) {
+            $ip = $config['ip'] ?? '';
+            if (empty($ip)) continue;
+
+            $checks++;
+
+            // Validate receiver IP is in expected AV subnet
+            if (!preg_match('/^192\.168\.8\.\d{1,3}$/', $ip)) {
+                warn("Receiver '{$name}' in zone '{$zoneId}' has IP {$ip} outside expected subnet 192.168.8.0/24", $warnings);
+            }
+
+            // Track for duplicate detection
+            $allReceivers[$ip][] = $zoneId;
+        }
+    }
+
+    // Check for IPs that appear in multiple zones (informational, not an error)
+    foreach ($allReceivers as $ip => $zoneIds) {
+        if (count($zoneIds) > 1) {
+            $checks++;
+            $zoneList = implode(', ', array_unique($zoneIds));
+            ok("Receiver {$ip} shared across zones: {$zoneList}");
+        }
+    }
+
+    ok('Receiver IP validation complete.');
+}
+
+/**
+ * Validate WLED IPs are in expected subnet
+ */
+function validateWledIps(string $root, array &$errors, array &$warnings, int &$checks): void
+{
+    $zonesPath = $root . '/zones.json';
+    if (!is_file($zonesPath)) return;
+
+    $zones = json_decode((string) file_get_contents($zonesPath), true);
+    if (!is_array($zones) || empty($zones['zones'])) return;
+
+    foreach ($zones['zones'] as $zone) {
+        $zoneId = $zone['id'] ?? '';
+        $wledFile = $root . '/' . $zoneId . '/WLEDlist.ini';
+        if (!$zoneId || !is_file($wledFile)) continue;
+
+        $lines = file($wledFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) continue;
+
+        $ini = parse_ini_file($wledFile, false);
+        if (!is_array($ini)) continue;
+
+        foreach ($ini as $name => $ip) {
+            $ip = trim($ip);
+            if (empty($ip)) continue;
+
+            $checks++;
+            if (!preg_match('/^192\.168\.6\.\d{1,3}$/', $ip)) {
+                warn("WLED device '{$name}' in zone '{$zoneId}' has IP {$ip} outside expected subnet 192.168.6.0/24", $warnings);
+            }
+        }
+    }
+
+    ok('WLED IP validation complete.');
+}
+
 $startTime = microtime(true);
 $root = dirname(__DIR__);
 
 validateZones($root, $errors, $checks);
 validateTopLevelJsonFiles($root, $errors, $warnings, $checks);
+validateReceiverIps($root, $errors, $warnings, $checks);
+validateWledIps($root, $errors, $warnings, $checks);
 lintPhpFiles($root, $errors, $checks);
 
 $durationMs = (int) round((microtime(true) - $startTime) * 1000);

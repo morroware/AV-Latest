@@ -32,7 +32,7 @@ if ($controller->handleRequest()) {
 }
 
 // Check if any receivers are reachable before rendering
-$allReceiversUnreachable = $controller->checkReceiversReachable();
+$allReceiversUnreachable = $controller->areAllReceiversUnreachable();
 
 // Include the zone-specific template
 include __DIR__ . '/template.php';

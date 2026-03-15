@@ -155,14 +155,13 @@ class BaseController {
         $powerCommand = sanitizeInput($_POST['power_command'], 'string');
         $rawCommand = $_POST['power_command'] ?? '';
 
-        // Debug log: capture exactly what we send and receive
-        logMessage("POWER DEBUG [{$deviceIp}]: raw='{$rawCommand}' sanitized='{$powerCommand}'", 'error');
+        logMessage("POWER DEBUG [{$deviceIp}]: raw='{$rawCommand}' sanitized='{$powerCommand}'", 'debug');
 
         try {
             $commandResponse = makeApiCall('POST', $deviceIp, 'command/cli', $powerCommand, 'text/plain');
             $responseData = json_decode($commandResponse, true);
 
-            logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'error');
+            logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'debug');
 
             if (isset($responseData['data']) && $responseData['data'] === 'OK') {
                 $response['success'] = true;
@@ -171,7 +170,7 @@ class BaseController {
                 $response['message'] = "Error sending power command: Unexpected response.";
             }
         } catch (Exception $e) {
-            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$e->getMessage()}'", 'error');
+            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$e->getMessage()}'", 'debug');
             $response['message'] = "Error sending power command: " . $e->getMessage();
         }
 
@@ -386,15 +385,6 @@ class BaseController {
     }
 
     /**
-     * Check if all receivers are unreachable (legacy alias)
-     * @deprecated Use areAllReceiversUnreachable() for clarity
-     * @return bool True if all receivers are unreachable
-     */
-    public function checkReceiversReachable() {
-        return $this->areAllReceiversUnreachable();
-    }
-
-    /**
      * Include the zone template
      *
      * @param array $vars Variables to pass to template
@@ -404,7 +394,7 @@ class BaseController {
         extract($vars);
 
         // Check reachability
-        $allReceiversUnreachable = $this->checkReceiversReachable();
+        $allReceiversUnreachable = $this->areAllReceiversUnreachable();
 
         // Include the template
         include $this->zoneDir . '/template.php';

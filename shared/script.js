@@ -782,9 +782,12 @@ function loadReceiverStatus(receiverElement, ip, transmitters) {
     const contentDiv = receiverElement.querySelector('.receiver-content');
     if (!contentDiv) return;
 
-    // Fetch status from API
-    compatFetch(`../api/receiver-status.php?ip=${encodeURIComponent(ip)}`)
-        .then(response => response.json())
+    // Fetch status from API with timeout to prevent hanging on unreachable devices
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+    compatFetch(`../api/receiver-status.php?ip=${encodeURIComponent(ip)}`, { signal: controller.signal })
+        .then(response => { clearTimeout(timeoutId); return response.json(); })
         .then(data => {
             receiverElement.classList.remove('receiver-loading');
 
@@ -836,11 +839,13 @@ function loadReceiverStatus(receiverElement, ip, transmitters) {
             contentDiv.innerHTML = html;
         })
         .catch(error => {
+            clearTimeout(timeoutId);
             console.error('Error loading receiver status:', error);
             receiverElement.classList.remove('receiver-loading');
+            const isTimeout = error.name === 'AbortError';
             contentDiv.innerHTML = `
                 <p style="text-align: center; color: #ff6b6b; padding: 1rem;">
-                    Failed to load receiver status.
+                    ${isTimeout ? 'Device timed out. Please check connection.' : 'Failed to load receiver status.'}
                 </p>`;
         });
 }
