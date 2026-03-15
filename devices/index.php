@@ -5,7 +5,7 @@
  * Dynamically reads device data from devices.json and zone configs
  *
  * @author Seth Morrow
- * @version 3.0.0
+ * @version 4.0.0
  * @copyright 2025-2026
  */
 declare(strict_types=1);
@@ -33,8 +33,6 @@ class AVDashboard
 
         if (file_exists($devicesFile)) {
             $data = json_decode(file_get_contents($devicesFile), true) ?? [];
-
-            // Collect receiver IPs
             foreach (($data['receivers'] ?? []) as $rx) {
                 if (!empty($rx['ip']) && ($rx['enabled'] ?? true)) {
                     $ips[] = $rx['ip'];
@@ -42,7 +40,6 @@ class AVDashboard
             }
         }
 
-        // Collect transmitter IPs from transmitters.txt
         $txFile = dirname(__DIR__) . '/dj/transmitters.txt';
         if (file_exists($txFile)) {
             $lines = file($txFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -75,10 +72,8 @@ class AVDashboard
             $devicesData = json_decode(file_get_contents($devicesFile), true) ?? [];
         }
 
-        // Build zone-to-IP mapping from zone configs
         $zoneMap = $this->buildZoneMap();
 
-        // Add receivers
         foreach (($devicesData['receivers'] ?? []) as $rx) {
             if (!($rx['enabled'] ?? true)) continue;
             $ip = $rx['ip'] ?? '';
@@ -94,7 +89,6 @@ class AVDashboard
             ];
         }
 
-        // Add transmitter IR blaster devices from transmitters.txt
         $txFile = dirname(__DIR__) . '/dj/transmitters.txt';
         if (file_exists($txFile)) {
             $lines = file($txFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -119,7 +113,6 @@ class AVDashboard
             }
         }
 
-        // Add logical transmitters (sources) from devices.json
         foreach (($devicesData['transmitters'] ?? []) as $tx) {
             if (!($tx['enabled'] ?? true)) continue;
             $devices[] = [
@@ -136,9 +129,6 @@ class AVDashboard
         return $devices;
     }
 
-    /**
-     * Build zone-to-IP mapping from zone config files
-     */
     private function buildZoneMap(): array
     {
         $map = [];
@@ -149,11 +139,9 @@ class AVDashboard
             $configFile = $zoneDir . '/' . $zone . '/config.php';
             if (!file_exists($configFile)) continue;
 
-            // Parse RECEIVERS from config file
             $content = file_get_contents($configFile);
             if (preg_match_all("/['\"]ip['\"]\s*=>\s*['\"](\d+\.\d+\.\d+\.\d+)['\"]/", $content, $matches)) {
                 foreach ($matches[1] as $ip) {
-                    // First zone wins (primary zone assignment)
                     if (!isset($map[$ip])) {
                         $map[$ip] = $zone;
                     }
@@ -164,9 +152,6 @@ class AVDashboard
         return $map;
     }
 
-    /**
-     * Send reboot command to a device
-     */
     private function rebootDevice(string $ip): array
     {
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
@@ -197,14 +182,10 @@ class AVDashboard
         ];
     }
 
-    /**
-     * Handle single device reboot
-     */
     private function handleSingleReboot(): void
     {
         $ip = $_POST['device_ip'] ?? '';
         $result = $this->rebootDevice($ip);
-
         $this->jsonResponse([
             'success' => $result['success'],
             'message' => $result['success']
@@ -213,23 +194,18 @@ class AVDashboard
         ]);
     }
 
-    /**
-     * Handle bulk device reboot
-     */
     private function handleBulkReboot(): void
     {
         $results = ['success' => 0, 'failed' => 0, 'failures' => []];
 
         foreach ($this->deviceIps as $ip) {
             $result = $this->rebootDevice($ip);
-
             if ($result['success']) {
                 $results['success']++;
             } else {
                 $results['failed']++;
                 $results['failures'][] = ['ip' => $ip, 'error' => $result['error']];
             }
-
             usleep(self::THROTTLE_DELAY);
         }
 
@@ -240,9 +216,6 @@ class AVDashboard
         ]);
     }
 
-    /**
-     * Send JSON response
-     */
     private function jsonResponse(array $data): void
     {
         header('Content-Type: application/json');
@@ -250,9 +223,6 @@ class AVDashboard
         exit;
     }
 
-    /**
-     * Check if a device is online
-     */
     private function checkDeviceStatus(string $ip): string
     {
         $ch = curl_init("http://{$ip}");
@@ -271,9 +241,6 @@ class AVDashboard
         return ($result !== false && $httpCode > 0) ? 'online' : 'offline';
     }
 
-    /**
-     * Handle status check for all devices
-     */
     private function handleStatusCheck(): void
     {
         $statuses = [];
@@ -287,20 +254,6 @@ class AVDashboard
         ]);
     }
 
-    /**
-     * Handle device data request
-     */
-    private function handleGetDevices(): void
-    {
-        $this->jsonResponse([
-            'success' => true,
-            'devices' => $this->getDeviceData()
-        ]);
-    }
-
-    /**
-     * Handle POST requests
-     */
     public function handleRequest(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -319,20 +272,14 @@ class AVDashboard
             case 'check_status':
                 $this->handleStatusCheck();
                 break;
-            case 'get_devices':
-                $this->handleGetDevices();
-                break;
             default:
                 $this->jsonResponse(['success' => false, 'message' => 'Invalid action']);
         }
     }
 }
 
-// Initialize and handle request
 $dashboard = new AVDashboard();
 $dashboard->handleRequest();
-
-// Get device data for initial page render
 $deviceDataJson = json_encode($dashboard->getDeviceData(), JSON_THROW_ON_ERROR);
 ?>
 <!DOCTYPE html>
@@ -340,150 +287,121 @@ $deviceDataJson = json_encode($dashboard->getDeviceData(), JSON_THROW_ON_ERROR);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AV System Dashboard</title>
+    <title>Device Manager - Castle AV</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="header-content">
-                <h1 class="header-title">AV System Dashboard</h1>
-                <div class="header-actions">
-                    <a href="/" class="btn btn-secondary" title="Home">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                        Home
-                    </a>
-                    <button id="refresh-all" class="btn btn-secondary" title="Refresh All Status">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                            <path d="M21 3v5h-5"></path>
-                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                            <path d="M3 21v-5h5"></path>
-                        </svg>
-                        Refresh
-                    </button>
-                    <button id="reboot-all-btn" class="btn btn-danger">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M23 4v6h-6"></path>
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                        </svg>
-                        Reboot All
-                    </button>
-                </div>
-            </div>
-        </header>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="total-devices">0</div>
-                <div class="stat-label">Total Devices</div>
+    <!-- Sticky top bar -->
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a href="/" class="topbar-brand" title="Back to Home">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Device Manager</span>
+            </a>
+            <div class="topbar-status" id="status-summary">
+                <span class="status-dot dot-checking"></span>
+                <span id="status-text">Checking devices...</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="tx-count">0</div>
-                <div class="stat-label">Transmitters</div>
+            <div class="topbar-actions">
+                <button id="refresh-btn" class="icon-btn" title="Refresh status">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                </button>
+                <button id="reboot-all-btn" class="icon-btn icon-btn-danger" title="Reboot all devices">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                </button>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="rx-count">0</div>
-                <div class="stat-label">Receivers</div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Search + Filters bar -->
+        <div class="toolbar">
+            <div class="search-wrap">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="search" placeholder="Search by name, IP, or zone..." autocomplete="off">
+                <button id="search-clear" class="search-clear" title="Clear search">&times;</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="online-count">0</div>
-                <div class="stat-label">Online</div>
+            <div class="filters" id="filters">
+                <button class="chip active" data-filter="all">All</button>
+                <span class="chip-divider"></span>
+                <button class="chip" data-filter="rx">Receivers</button>
+                <button class="chip" data-filter="tx">Transmitters</button>
+                <span class="chip-divider"></span>
+                <button class="chip" data-filter="bowling">Bowling</button>
+                <button class="chip" data-filter="bowlingbar">Bowling Bar</button>
+                <button class="chip" data-filter="rink">Rink</button>
+                <button class="chip" data-filter="jesters">Jesters</button>
+                <button class="chip" data-filter="facility">Facility</button>
+                <button class="chip" data-filter="outside">Outside</button>
             </div>
         </div>
 
-        <nav class="tabs">
-            <button class="tab active" data-tab="all">All Devices</button>
-            <button class="tab" data-tab="tx">Transmitters</button>
-            <button class="tab" data-tab="rx">Receivers</button>
-            <button class="tab" data-tab="bowling">Bowling</button>
-            <button class="tab" data-tab="bowlingbar">Bowling Bar</button>
-            <button class="tab" data-tab="rink">Rink</button>
-            <button class="tab" data-tab="jesters">Jesters</button>
-            <button class="tab" data-tab="facility">Facility</button>
-            <button class="tab" data-tab="outside">Outside</button>
-        </nav>
-
-        <div class="search-container">
-            <div class="search-box">
-                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <input type="text" id="search-input" placeholder="Search devices..." autocomplete="off">
+        <!-- Device count & view toggle -->
+        <div class="list-header">
+            <span class="result-count" id="result-count">0 devices</span>
+            <div class="view-toggle">
+                <button class="vt-btn active" data-view="list" title="List view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </button>
+                <button class="vt-btn" data-view="grid" title="Card view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </button>
             </div>
         </div>
 
-        <main class="content">
-            <div id="all" class="tab-content active">
-                <section class="device-section">
-                    <h2>Transmitters</h2>
-                    <div class="device-grid" id="all-tx"></div>
-                </section>
-                <section class="device-section">
-                    <h2>Receivers</h2>
-                    <div class="device-grid" id="all-rx"></div>
-                </section>
-            </div>
-            <div id="tx" class="tab-content">
-                <div class="device-grid" id="tx-devices"></div>
-            </div>
-            <div id="rx" class="tab-content">
-                <div class="device-grid" id="rx-devices"></div>
-            </div>
-            <div id="bowling" class="tab-content">
-                <div class="device-grid" id="bowling-devices"></div>
-            </div>
-            <div id="bowlingbar" class="tab-content">
-                <div class="device-grid" id="bowlingbar-devices"></div>
-            </div>
-            <div id="rink" class="tab-content">
-                <div class="device-grid" id="rink-devices"></div>
-            </div>
-            <div id="jesters" class="tab-content">
-                <div class="device-grid" id="jesters-devices"></div>
-            </div>
-            <div id="facility" class="tab-content">
-                <div class="device-grid" id="facility-devices"></div>
-            </div>
-            <div id="outside" class="tab-content">
-                <div class="device-grid" id="outside-devices"></div>
-            </div>
-        </main>
-    </div>
+        <!-- Device list (single container, JS renders everything) -->
+        <div id="device-container" class="device-list"></div>
 
-    <!-- Confirmation Modal -->
-    <div id="reboot-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Confirm System Reboot</h3>
-                <button class="modal-close" id="modal-close">&times;</button>
+        <!-- Empty state -->
+        <div id="empty-state" class="empty-state" style="display:none">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <p id="empty-message">No devices found</p>
+        </div>
+    </main>
+
+    <!-- Reboot confirmation modal -->
+    <div id="reboot-modal" class="modal-overlay">
+        <div class="modal" role="dialog" aria-labelledby="modal-title">
+            <div class="modal-top">
+                <h3 id="modal-title">Reboot All Devices?</h3>
+                <button class="modal-x" id="modal-close" aria-label="Close">&times;</button>
             </div>
             <div class="modal-body">
-                <p>This will send reboot commands to <strong>all devices</strong> in the system. This action cannot be undone.</p>
-                <p class="warning">Devices will be temporarily unavailable during the reboot process.</p>
+                <p>This sends a reboot command to <strong>every device</strong> on the network. All AV outputs will drop temporarily.</p>
             </div>
-            <div class="modal-footer">
-                <button id="cancel-reboot" class="btn btn-secondary">Cancel</button>
-                <button id="confirm-reboot" class="btn btn-danger">Reboot All Devices</button>
+            <div class="modal-actions">
+                <button id="cancel-reboot" class="btn btn-ghost">Cancel</button>
+                <button id="confirm-reboot" class="btn btn-danger">Reboot All</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Single device reboot modal -->
+    <div id="single-reboot-modal" class="modal-overlay">
+        <div class="modal" role="dialog" aria-labelledby="single-modal-title">
+            <div class="modal-top">
+                <h3 id="single-modal-title">Reboot Device?</h3>
+                <button class="modal-x single-modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Send reboot command to <strong id="single-reboot-name"></strong> (<span id="single-reboot-ip"></span>)?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost single-modal-close">Cancel</button>
+                <button id="single-reboot-confirm" class="btn btn-danger">Reboot</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toasts" class="toast-stack"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script>
-        // Device data injected from PHP (read from devices.json and zone configs)
-        window.DEVICE_DATA = <?php echo $deviceDataJson; ?>;
-    </script>
+    <script>window.DEVICE_DATA = <?php echo $deviceDataJson; ?>;</script>
     <script src="script.js"></script>
 </body>
 </html>
