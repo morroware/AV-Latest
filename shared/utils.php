@@ -199,15 +199,31 @@ function getCurrentVolume($deviceIp) {
 
 /**
  * Set volume level on device
+ *
+ * Uses fire-and-forget semantics — see setChannel() for rationale.
  */
 function setVolume($deviceIp, $volume) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/audio/stereo/volume', $volume, 'text/plain');
         $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        if (isset($data['data']) && $data['data'] === 'OK') {
+            return true;
+        }
+        logMessage("setVolume got unexpected response for $deviceIp: $response", 'debug');
+        return true;
     } catch (Exception $e) {
-        logMessage('Error setting volume: ' . $e->getMessage(), 'error');
-        return false;
+        $msg = $e->getMessage();
+        $isUnreachable = stripos($msg, 'Could not resolve') !== false
+            || stripos($msg, 'Connection refused') !== false
+            || stripos($msg, 'No route to host') !== false;
+
+        if ($isUnreachable) {
+            logMessage("setVolume failed — device unreachable: $msg", 'error');
+            return false;
+        }
+
+        logMessage("setVolume for $deviceIp (non-fatal cURL issue): $msg", 'debug');
+        return true;
     }
 }
 
@@ -244,15 +260,36 @@ function getCurrentChannel($deviceIp) {
 
 /**
  * Set channel on device
+ *
+ * Uses fire-and-forget semantics: the device processes the command as soon
+ * as the HTTP request body arrives.  Timeouts, empty replies, and connection
+ * resets do NOT mean the command failed — only that the response was lost.
+ * Only connection-refused / DNS failures indicate the command was never sent.
  */
 function setChannel($deviceIp, $channel) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/channel', $channel, 'text/plain');
         $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        if (isset($data['data']) && $data['data'] === 'OK') {
+            return true;
+        }
+        // Non-standard response but request was delivered — treat as success
+        logMessage("setChannel got unexpected response for $deviceIp: $response", 'debug');
+        return true;
     } catch (Exception $e) {
-        logMessage('Error setting channel: ' . $e->getMessage(), 'error');
-        return false;
+        $msg = $e->getMessage();
+        $isUnreachable = stripos($msg, 'Could not resolve') !== false
+            || stripos($msg, 'Connection refused') !== false
+            || stripos($msg, 'No route to host') !== false;
+
+        if ($isUnreachable) {
+            logMessage("setChannel failed — device unreachable: $msg", 'error');
+            return false;
+        }
+
+        // Timeout, empty reply, reset — command was likely delivered
+        logMessage("setChannel for $deviceIp (non-fatal cURL issue): $msg", 'debug');
+        return true;
     }
 }
 
