@@ -892,6 +892,10 @@ function propagateReceiverIpChanges(array $ipChanges, string $skipZoneDir = ''):
 
         if ($content !== $originalContent) {
             file_put_contents($configFile, $content);
+            // Invalidate OPcache so PHP loads the updated config immediately
+            if (function_exists('opcache_invalidate')) {
+                opcache_invalidate($configFile, true);
+            }
             $updatedZones[] = $zoneId;
         }
     }
