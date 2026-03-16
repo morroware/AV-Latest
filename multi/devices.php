@@ -11,6 +11,9 @@
 
 $devicesFile = dirname(__DIR__) . '/devices.json';
 
+// Load zones utility for IP propagation
+require_once dirname(__DIR__) . '/shared/zones.php';
+
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
@@ -24,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$devices) {
             throw new Exception('Could not load devices configuration');
         }
+
+        $pendingIpPropagation = null;
 
         switch ($action) {
             case 'add_receiver':
@@ -82,9 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('Invalid IP address format');
                 }
 
+                // Capture original name before editing (for IP propagation by name)
+                $originalName = '';
                 $found = false;
                 foreach ($devices['receivers'] as &$receiver) {
                     if ($receiver['ip'] === $originalIp) {
+                        $originalName = $receiver['name'];
                         $receiver['name'] = $name;
                         $receiver['ip'] = $ip;
                         $receiver['type'] = $type;
@@ -97,6 +105,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$found) {
                     throw new Exception('Receiver not found');
+                }
+
+                // Track IP change for propagation to zone configs
+                if ($originalIp !== $ip) {
+                    $pendingIpPropagation = [
+                        'name' => $originalName,
+                        'old' => $originalIp,
+                        'new' => $ip
+                    ];
                 }
 
                 $response['message'] = "Receiver '$name' updated successfully";
@@ -203,6 +220,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $response['success'] = true;
         $response['devices'] = $devices;
+
+        // Propagate receiver IP changes to all zone configs
+        if (isset($pendingIpPropagation)) {
+            $propagation = propagateReceiverIpFromDevicesJson(
+                $pendingIpPropagation['name'],
+                $pendingIpPropagation['old'],
+                $pendingIpPropagation['new']
+            );
+            if (!empty($propagation['zones'])) {
+                $response['message'] .= '. Also updated IP in zone(s): ' . implode(', ', $propagation['zones']);
+            }
+        }
 
     } catch (Exception $e) {
         $response['message'] = $e->getMessage();
