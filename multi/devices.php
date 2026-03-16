@@ -447,7 +447,13 @@ usort($devices['transmitters'], function($a, $b) {
         }
 
         .modal {
+            /* Override shared/styles.css .modal which styles it as a full-screen overlay */
+            display: block;
+            position: relative;
+            height: auto;
             background: var(--surface-solid);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             border: 1px solid var(--surface-border);
             border-radius: 16px;
             padding: 1.5rem;
