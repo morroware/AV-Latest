@@ -92,7 +92,13 @@ if (isset($_POST['restore_backup'])) {
 }
 
 // Handle configuration updates
+// Load zones.php for IP propagation (if not already loaded)
+require_once dirname(__FILE__) . '/zones.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['restore_backup'])) {
+    // Capture old receivers before save so we can detect IP changes
+    $oldReceivers = $defaultConfig['receivers'];
+
     try {
         if (!$isWritable && file_exists($configFile)) {
             throw new Exception(
@@ -286,7 +292,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['restore_backup'])) {
             throw new Exception("Failed to write to config file. Please check file permissions.");
         }
 
-        $message = ['type' => 'success', 'text' => 'Configuration updated successfully'];
+        // Propagate receiver IP changes to other zones and devices.json
+        $propagationNote = '';
+        if ($section === 'receivers' || $section === 'all') {
+            $ipChanges = [];
+            foreach ($receivers as $name => $settings) {
+                if (isset($oldReceivers[$name]) && $oldReceivers[$name]['ip'] !== $settings['ip']) {
+                    $ipChanges[$name] = [
+                        'old' => $oldReceivers[$name]['ip'],
+                        'new' => $settings['ip']
+                    ];
+                }
+            }
+
+            if (!empty($ipChanges)) {
+                $propagation = propagateReceiverIpChanges($ipChanges, ZONE_DIR);
+                $updatedParts = [];
+                if (!empty($propagation['zones'])) {
+                    $updatedParts[] = count($propagation['zones']) . ' other zone(s): ' . implode(', ', $propagation['zones']);
+                }
+                if ($propagation['devices_json']) {
+                    $updatedParts[] = 'devices.json';
+                }
+                if (!empty($updatedParts)) {
+                    $propagationNote = ' Also updated IP in ' . implode(' and ', $updatedParts) . '.';
+                }
+            }
+        }
+
+        $message = ['type' => 'success', 'text' => 'Configuration updated successfully.' . $propagationNote];
 
     } catch (Exception $e) {
         $message = ['type' => 'error', 'text' => 'Error updating configuration: ' . $e->getMessage()];

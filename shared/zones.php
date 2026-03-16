@@ -800,6 +800,153 @@ function reorderZones(array $orderedIds): array
 }
 
 // ============================================================================
+// Receiver IP Propagation
+// ============================================================================
+
+/**
+ * Propagate receiver IP changes across all zone configs and devices.json.
+ *
+ * When a receiver's IP is changed in one zone's settings, this function
+ * updates every other zone config.php that references the same receiver
+ * (matched by name) and also updates devices.json.
+ *
+ * @param array $ipChanges  Associative array of receiver name => ['old' => old_ip, 'new' => new_ip]
+ * @param string $skipZoneDir  Zone directory to skip (already saved by the caller)
+ * @return array  Summary of what was updated: ['zones' => [...], 'devices_json' => bool]
+ */
+function propagateReceiverIpChanges(array $ipChanges, string $skipZoneDir = ''): array
+{
+    if (empty($ipChanges)) {
+        return ['zones' => [], 'devices_json' => false];
+    }
+
+    $baseDir = dirname(__DIR__);
+    $updatedZones = [];
+
+    // 1. Update all zone config.php files (except the one that was just saved and multi/all which are dynamic or separate)
+    $config = loadZonesConfig();
+    $zones = $config['zones'] ?? [];
+
+    foreach ($zones as $zone) {
+        $zoneId = $zone['id'];
+        $zoneDir = $baseDir . '/' . $zoneId;
+        $configFile = $zoneDir . '/config.php';
+
+        // Skip the zone that was just saved
+        if (realpath($zoneDir) === realpath($skipZoneDir)) {
+            continue;
+        }
+
+        // Skip multi zone (it dynamically aggregates from other zones)
+        if ($zoneId === 'multi') {
+            continue;
+        }
+
+        if (!file_exists($configFile) || !is_writable($configFile)) {
+            continue;
+        }
+
+        // Load this zone's receivers in isolation
+        $zoneReceivers = loadZoneReceivers($zoneId);
+        if (empty($zoneReceivers)) {
+            continue;
+        }
+
+        // Check if any of our changed receivers exist in this zone
+        $needsUpdate = false;
+        foreach ($ipChanges as $name => $change) {
+            if (isset($zoneReceivers[$name]) && $zoneReceivers[$name]['ip'] === $change['old']) {
+                $needsUpdate = true;
+                break;
+            }
+        }
+
+        if (!$needsUpdate) {
+            continue;
+        }
+
+        // Read the config file content and do targeted IP replacements
+        $content = file_get_contents($configFile);
+        if ($content === false) {
+            continue;
+        }
+
+        $originalContent = $content;
+
+        foreach ($ipChanges as $name => $change) {
+            if (!isset($zoneReceivers[$name]) || $zoneReceivers[$name]['ip'] !== $change['old']) {
+                continue;
+            }
+
+            // Replace the IP in the config file content using a pattern that matches
+            // the receiver's 'ip' => 'X.X.X.X' line near the receiver name
+            $escapedName = preg_quote($name, '/');
+            $escapedOldIp = preg_quote($change['old'], '/');
+
+            // Match the receiver block: 'Name' => [...'ip' => 'OLD_IP'...]
+            // Use a pattern that finds the IP value within ~200 chars after the name
+            $pattern = '/(' . $escapedName . '[\'"].*?[\'"]ip[\'"]\\s*=>\\s*[\'"])' . $escapedOldIp . '([\'"])/s';
+            $replacement = '${1}' . $change['new'] . '${2}';
+            $content = preg_replace($pattern, $replacement, $content, 1);
+        }
+
+        if ($content !== $originalContent) {
+            file_put_contents($configFile, $content);
+            $updatedZones[] = $zoneId;
+        }
+    }
+
+    // 2. Update devices.json
+    $devicesUpdated = false;
+    $devicesFile = $baseDir . '/devices.json';
+
+    if (file_exists($devicesFile) && is_writable($devicesFile)) {
+        $devicesData = json_decode(file_get_contents($devicesFile), true);
+
+        if (is_array($devicesData) && !empty($devicesData['receivers'])) {
+            foreach ($devicesData['receivers'] as &$receiver) {
+                foreach ($ipChanges as $name => $change) {
+                    if ($receiver['name'] === $name && $receiver['ip'] === $change['old']) {
+                        $receiver['ip'] = $change['new'];
+                        $devicesUpdated = true;
+                    }
+                }
+            }
+            unset($receiver);
+
+            if ($devicesUpdated) {
+                $json = json_encode($devicesData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                file_put_contents($devicesFile, $json);
+            }
+        }
+    }
+
+    return ['zones' => $updatedZones, 'devices_json' => $devicesUpdated];
+}
+
+/**
+ * Propagate a single receiver IP change from devices.json to all zone configs.
+ *
+ * Called when a receiver is edited via multi/devices.php.
+ *
+ * @param string $receiverName  The receiver name
+ * @param string $oldIp  The previous IP address
+ * @param string $newIp  The new IP address
+ * @return array  Summary of what was updated
+ */
+function propagateReceiverIpFromDevicesJson(string $receiverName, string $oldIp, string $newIp): array
+{
+    if ($oldIp === $newIp) {
+        return ['zones' => [], 'devices_json' => false];
+    }
+
+    return propagateReceiverIpChanges(
+        [$receiverName => ['old' => $oldIp, 'new' => $newIp]],
+        '' // no zone to skip - this came from devices.json
+    );
+}
+
+// ============================================================================
 // Quick Links (Custom URL Buttons) Management
 // ============================================================================
 
