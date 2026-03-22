@@ -346,14 +346,29 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
             return waitMs(Math.max(0, followupDelayMs))
                 .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
                 .then(() => waitMs(3000))
-                .then(() => sendPowerCommand(deviceIp, followupCommand, false)
-                    .catch(function(error) {
-                        if (!followupFallbackCommand) {
-                            return null;
-                        }
-                        console.warn('Follow-up retry failed, trying fallback command:', error);
-                        return sendPowerCommand(deviceIp, followupFallbackCommand, false).catch(() => null);
-                    }))
+                .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
+                .then(function() {
+                    // HTTP success does not guarantee HDMI input actually switched.
+                    // For Roku, always send an additional input-selection pass.
+                    if (!rokuTarget) {
+                        return null;
+                    }
+
+                    return waitMs(1500)
+                        .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null))
+                        .then(() => waitMs(2000))
+                        .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null));
+                })
+                .then(function() {
+                    if (!followupFallbackCommand) {
+                        return null;
+                    }
+
+                    // Send fallback as an additional pass (not only on transport error)
+                    // because some displays acknowledge but ignore the first source change.
+                    return waitMs(1200)
+                        .then(() => sendPowerCommand(deviceIp, followupFallbackCommand, false).catch(() => null));
+                })
                 .then(() => response);
         });
 }
