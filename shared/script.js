@@ -346,20 +346,36 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
             return waitMs(Math.max(0, followupDelayMs))
                 .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
                 .then(() => waitMs(3000))
-                .then(() => sendPowerCommand(deviceIp, followupCommand, false)
-                    .catch(function(error) {
-                        if (!followupFallbackCommand) {
-                            return null;
-                        }
-                        console.warn('Follow-up retry failed, trying fallback command:', error);
-                        return sendPowerCommand(deviceIp, followupFallbackCommand, false).catch(() => null);
-                    }))
+                .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
+                .then(function() {
+                    // HTTP success does not guarantee HDMI input actually switched.
+                    // For Roku, always send an additional input-selection pass.
+                    if (!rokuTarget) {
+                        return null;
+                    }
+
+                    return waitMs(1500)
+                        .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null))
+                        .then(() => waitMs(2000))
+                        .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null));
+                })
+                .then(function() {
+                    if (!followupFallbackCommand) {
+                        return null;
+                    }
+
+                    // Send fallback as an additional pass (not only on transport error)
+                    // because some displays acknowledge but ignore the first source change.
+                    return waitMs(1200)
+                        .then(() => sendPowerCommand(deviceIp, followupFallbackCommand, false).catch(() => null));
+                })
                 .then(() => response);
         });
 }
 
 function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = true) {
     const powerOffCommand = receiverElement.dataset.powerOffCommand || 'cec_tv_off.sh';
+    const alternatePowerOffCommand = (powerOffCommand === 'cec_power_off_tv') ? 'cec_tv_off.sh' : 'cec_power_off_tv';
     const preCommand = receiverElement.dataset.powerOffPreCommand;
     const preDelayMs = parseInt(receiverElement.dataset.powerOffPreDelayMs, 10) || 3000;
     const rokuTarget = isRokuTarget(receiverElement, deviceIp);
@@ -378,8 +394,13 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
                             return null;
                         }
 
-                        // Roku TVs can ignore wrapper scripts; also send direct CEC standby.
+                        // Roku TVs can ignore one variant on specific firmware/input states.
+                        // Send both wrapper variants and direct standby twice for max reliability.
                         return waitMs(1000)
+                            .then(() => sendPowerCommand(deviceIp, alternatePowerOffCommand, false).catch(() => null))
+                            .then(() => waitMs(1000))
+                            .then(() => sendPowerCommand(deviceIp, 'CEC_TV_OFF', false).catch(() => null))
+                            .then(() => waitMs(1200))
                             .then(() => sendPowerCommand(deviceIp, 'CEC_TV_OFF', false).catch(() => null));
                     })
                     .then(() => response);
