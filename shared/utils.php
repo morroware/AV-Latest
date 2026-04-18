@@ -78,6 +78,12 @@ function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, 
     $powerOnFollowupDelayMs = isset($settings['power_on_followup_delay_ms']) ? (int)$settings['power_on_followup_delay_ms'] : 7000;
     $powerOffPreCommand = $settings['power_off_pre_command'] ?? 'cec_watch_me.sh';
     $powerOffPreDelayMs = isset($settings['power_off_pre_delay_ms']) ? (int)$settings['power_off_pre_delay_ms'] : 3000;
+    // Opt-in flag for TVs that need the extended CEC retry sequence (direct
+    // binary retries + repeated one-touch-play source selects).  Useful for
+    // Roku, some Samsung/LG sets, and any display with aggressive CEC
+    // filtering.  When true, the client sends additional retries on both
+    // power on and power off.
+    $powerExtendedRetry = isset($settings['power_extended_retry']) ? (bool)$settings['power_extended_retry'] : false;
 
     $escapedName = htmlspecialchars($receiverName);
     $escapedIp = htmlspecialchars($deviceIp);
@@ -87,7 +93,7 @@ function generateReceiverForm($receiverName, $settings, $minVolume, $maxVolume, 
     $escapedPowerOnFollowupFallback = htmlspecialchars($powerOnFollowupFallbackCommand);
     $escapedPowerOffPre = htmlspecialchars($powerOffPreCommand);
 
-    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "' data-power-on-command='" . $escapedPowerOn . "' data-power-off-command='" . $escapedPowerOff . "' data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "' data-power-on-followup-command='" . $escapedPowerOnFollowup . "' data-power-on-followup-fallback-command='" . $escapedPowerOnFollowupFallback . "' data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "' data-power-off-pre-command='" . $escapedPowerOffPre . "' data-power-off-pre-delay-ms='" . max(0, $powerOffPreDelayMs) . "'>";
+    $html = "<div class='receiver receiver-loading' data-ip='" . $escapedIp . "' data-name='" . $escapedName . "' data-min-volume='$minVolume' data-max-volume='$maxVolume' data-volume-step='$volumeStep' data-show-power='" . ($showPower ? '1' : '0') . "' data-power-on-command='" . $escapedPowerOn . "' data-power-off-command='" . $escapedPowerOff . "' data-power-on-repeat='" . ($powerOnRepeat ? '1' : '0') . "' data-power-on-followup-command='" . $escapedPowerOnFollowup . "' data-power-on-followup-fallback-command='" . $escapedPowerOnFollowupFallback . "' data-power-on-followup-delay-ms='" . max(0, $powerOnFollowupDelayMs) . "' data-power-off-pre-command='" . $escapedPowerOffPre . "' data-power-off-pre-delay-ms='" . max(0, $powerOffPreDelayMs) . "' data-power-extended-retry='" . ($powerExtendedRetry ? '1' : '0') . "'>";
     $html .= "<button type='button' class='receiver-title'>" . $escapedName . "</button>";
 
     // Loading placeholder

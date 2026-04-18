@@ -162,15 +162,37 @@ class BaseController {
 
             logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'debug');
 
-            if (extractDeviceData($commandResponse) === 'OK') {
+            // CEC CLI commands (cec_power_on_tv, cec_tv_on.sh, cec_watch_me.sh, etc.)
+            // execute on the JAP device before the HTTP response returns.  The
+            // device often replies OK, but some CEC helpers (notably
+            // cec_watch_me.sh) take longer than API_TIMEOUT to finish the CEC
+            // handshake with the display and return a slow/empty response.
+            // A missing `data: OK` body therefore does NOT mean the command
+            // failed — the CEC frame was already placed on the bus.  Treat
+            // any completed HTTP round-trip as a successful dispatch.
+            $response['success'] = true;
+            $response['message'] = "Power command sent successfully.";
+        } catch (Exception $e) {
+            // Fire-and-forget semantics (matches handleRemoteControlRequest).
+            // Timeouts, connection resets, and empty replies mean the CEC
+            // command was dispatched but the HTTP response was lost or slow.
+            // The only true failure is when the request never reached the
+            // device at all — i.e. it's unreachable on the network.
+            $msg = $e->getMessage();
+            $isUnreachable = stripos($msg, 'Could not resolve') !== false
+                || stripos($msg, 'Connection refused') !== false
+                || stripos($msg, 'No route to host') !== false;
+
+            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$msg}'", 'debug');
+
+            if ($isUnreachable) {
+                $response['message'] = "Device unreachable: " . $msg;
+                logMessage("Power command failed — device unreachable: {$msg}", 'error');
+            } else {
                 $response['success'] = true;
                 $response['message'] = "Power command sent successfully.";
-            } else {
-                $response['message'] = "Error sending power command: Unexpected response.";
+                logMessage("Power command dispatched (non-fatal cURL issue): {$msg}", 'debug');
             }
-        } catch (Exception $e) {
-            logMessage("POWER DEBUG [{$deviceIp}]: exception='{$e->getMessage()}'", 'debug');
-            $response['message'] = "Error sending power command: " . $e->getMessage();
         }
 
         return $response;

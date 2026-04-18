@@ -125,8 +125,9 @@ Use the Zone Manager (`zonemanager.php`) or manually:
 ### Configuration Constants (in zone config.php)
 
 - `RECEIVERS` - Array of device name => [ip, show_power, power commands]
-  - Power-related optional keys: `power_on_command`, `power_off_command`, `power_on_repeat`, `power_on_followup_command`, `power_on_followup_fallback_command`, `power_on_followup_delay_ms`, `power_off_pre_command`, `power_off_pre_delay_ms`
+  - Power-related optional keys: `power_on_command`, `power_off_command`, `power_on_repeat`, `power_on_followup_command`, `power_on_followup_fallback_command`, `power_on_followup_delay_ms`, `power_off_pre_command`, `power_off_pre_delay_ms`, `power_extended_retry`
   - Roku-targeted power behavior in current deployment uses `cec_power_on_tv` / `cec_power_off_tv` with `cec_watch_me.sh` sequencing
+  - `power_extended_retry => true` opts a receiver into the extended CEC retry sequence (extra direct-binary retries + repeated one-touch-play source selects). Use for Roku, aggressive-CEC Samsung/LG sets, or any TV that ignores a single Standby/Power-On frame. Legacy Roku IPs at `192.168.8.23` and `192.168.8.44` are still auto-detected for backward compatibility.
 - `TRANSMITTERS` - Array of source name => channel number
 - `MAX_VOLUME` / `MIN_VOLUME` / `VOLUME_STEP` - Volume limits
 - `API_TIMEOUT` - Seconds for device API calls (default: 5 in utils.php; zones using devices.json settings may default to 2)
