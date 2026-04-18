@@ -134,28 +134,35 @@ function initializeReceiverControls() {
         });
     });
 
-    // Debounced auto-submit for volume changes
-    let volumeTimeout = null;
+    // Debounced auto-submit for volume changes.  Per-slider timeout so two
+    // receivers can be adjusted in quick succession without one cancelling
+    // the other's pending request.  On failure we revert the slider to the
+    // last value the device accepted, so the UI never misrepresents state.
     $(document).on('input', '.volume-slider, input[type="range"].auto-submit', function() {
         const slider = this;
         const $slider = $(slider);
         const receiverCard = $slider.closest('.receiver');
         const deviceIp = $slider.data('ip') || receiverCard.data('ip');
 
-        // Update volume label immediately
-        updateVolumeLabel(slider);
-
-        // Debounce volume changes to avoid too many requests
-        if (volumeTimeout) {
-            clearTimeout(volumeTimeout);
+        // Remember the starting value the first time the user drags this slider
+        if (typeof slider._lastConfirmedValue === 'undefined') {
+            slider._lastConfirmedValue = slider.value;
         }
 
-        volumeTimeout = setTimeout(() => {
+        // Update volume label immediately for visual responsiveness
+        updateVolumeLabel(slider);
+
+        if (slider._volumeTimeout) {
+            clearTimeout(slider._volumeTimeout);
+        }
+
+        slider._volumeTimeout = setTimeout(() => {
             receiverCard.addClass('updating');
+            const attemptedValue = slider.value;
 
             const data = new FormData();
             data.append('receiver_ip', deviceIp);
-            data.append('volume', slider.value);
+            data.append('volume', attemptedValue);
 
             $.ajax({
                 url: '',
@@ -165,13 +172,20 @@ function initializeReceiverControls() {
                 contentType: false,
                 dataType: 'json',
                 success: function(response) {
-                    // Only show message on error - volume feedback is visual
-                    if (!response.success) {
+                    if (response.success) {
+                        slider._lastConfirmedValue = attemptedValue;
+                        announce(`Volume set to ${attemptedValue}`);
+                    } else {
+                        // Device unreachable or rejected — revert UI so the
+                        // slider matches the device state.
+                        slider.value = slider._lastConfirmedValue;
+                        updateVolumeLabel(slider);
                         showResponseMessage(response.message || 'Volume update failed', false);
                     }
-                    announce(`Volume set to ${slider.value}`);
                 },
                 error: function() {
+                    slider.value = slider._lastConfirmedValue;
+                    updateVolumeLabel(slider);
                     showResponseMessage('Failed to update volume. Check device connection.', false);
                 },
                 complete: function() {

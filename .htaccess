@@ -1,6 +1,6 @@
 # Protect sensitive configuration files from direct web access
 # favorites.ini is intentionally allowed (non-sensitive channel list used by frontend JS)
-<FilesMatch "\.(json\.lock|log|zip)$">
+<FilesMatch "\.(json\.lock|log|log\.[0-9]+|zip|cache)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -43,6 +43,18 @@
 
 # Protect backup files
 <FilesMatch "config_backup_.*\.php$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block hidden files (anything beginning with a dot) — covers .cache/ entries
+# and .device_model_cache.json under shared/.
+<FilesMatch "^\.">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>

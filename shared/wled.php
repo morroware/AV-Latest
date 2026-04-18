@@ -59,46 +59,74 @@ $successCount = 0;
 $failureCount = 0;
 $failures = [];
 
-// Iterate through each device and send the request
-$timeout = 3; // 3 second timeout per device
+// Per-device timeouts (apply regardless of whether curl_multi is available)
+$timeout = 3;
+$connectTimeout = 2;
 
+// Build handle list up front so the main loop is the same for single or
+// parallel dispatch.  Pre-validation catches obviously-bad IPs without
+// wasting a cURL handle.
+$handles = [];
 foreach ($wledDevices as $deviceIp) {
     $deviceIp = trim($deviceIp, '" ');
-    // Validate IP address to prevent SSRF
     if (!filter_var($deviceIp, FILTER_VALIDATE_IP)) {
         $failureCount++;
         $failures[] = ['ip' => $deviceIp, 'http_code' => 0, 'response' => 'Invalid IP address'];
         continue;
     }
-    $url = "http://$deviceIp$apiPath";
-    $ch = curl_init($url);
 
+    $ch = curl_init("http://$deviceIp$apiPath");
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'Content-Length: ' . strlen($payload)
     ]);
 
-    $response = curl_exec($ch);
-    $curlError = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $handles[] = ['ip' => $deviceIp, 'ch' => $ch];
+}
 
-    if ($response !== false && $httpCode === 200) {
-        $successCount++;
-    } else {
-        $failureCount++;
-        $failures[] = [
-            'ip' => $deviceIp,
-            'http_code' => $httpCode,
-            'response' => $response ?: $curlError
-        ];
+if (!empty($handles)) {
+    // Dispatch all requests in parallel — critical when one or more WLED
+    // devices are offline, otherwise we pay the full timeout for each one
+    // sequentially (up to N * $timeout seconds).
+    $mh = curl_multi_init();
+    foreach ($handles as $h) {
+        curl_multi_add_handle($mh, $h['ch']);
     }
 
-    curl_close($ch);
+    $running = null;
+    do {
+        curl_multi_exec($mh, $running);
+        if ($running > 0) {
+            // Block briefly waiting for activity to avoid a tight CPU loop.
+            curl_multi_select($mh, 0.1);
+        }
+    } while ($running > 0);
+
+    foreach ($handles as $h) {
+        $response = curl_multi_getcontent($h['ch']);
+        $httpCode = curl_getinfo($h['ch'], CURLINFO_HTTP_CODE);
+        $curlError = curl_error($h['ch']);
+
+        if ($response !== false && $response !== null && $httpCode === 200) {
+            $successCount++;
+        } else {
+            $failureCount++;
+            $failures[] = [
+                'ip' => $h['ip'],
+                'http_code' => $httpCode,
+                'response' => ($response !== false && $response !== null && $response !== '') ? $response : $curlError
+            ];
+        }
+
+        curl_multi_remove_handle($mh, $h['ch']);
+        curl_close($h['ch']);
+    }
+    curl_multi_close($mh);
 }
 
 // Prepare response

@@ -119,6 +119,24 @@ function getTransmittersJson() {
 // ============================================================================
 
 /**
+ * Decode a JSON payload from a device and safely extract the `data` field.
+ *
+ * Returns null if the payload is not valid JSON or has no `data` field.
+ * Using a helper avoids repeated `isset($x['data'])` checks against a
+ * possibly-null `json_decode()` result across the codebase.
+ */
+function extractDeviceData($rawResponse) {
+    if (!is_string($rawResponse) || $rawResponse === '') {
+        return null;
+    }
+    $decoded = json_decode($rawResponse, true);
+    if (!is_array($decoded) || !array_key_exists('data', $decoded)) {
+        return null;
+    }
+    return $decoded['data'];
+}
+
+/**
  * Make API calls to AV devices
  *
  * @param string $method HTTP method (GET, POST, etc.)
@@ -189,8 +207,8 @@ function makeApiCall($method, $deviceIp, $endpoint, $data = null, $contentType =
 function getCurrentVolume($deviceIp) {
     try {
         $response = makeApiCall('GET', $deviceIp, 'details/audio/stereo/volume');
-        $data = json_decode($response, true);
-        return isset($data['data']) ? intval($data['data']) : null;
+        $value = extractDeviceData($response);
+        return $value !== null && is_numeric($value) ? intval($value) : null;
     } catch (Exception $e) {
         logMessage('Error getting current volume: ' . $e->getMessage(), 'error');
         return null;
@@ -205,8 +223,7 @@ function getCurrentVolume($deviceIp) {
 function setVolume($deviceIp, $volume) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/audio/stereo/volume', $volume, 'text/plain');
-        $data = json_decode($response, true);
-        if (isset($data['data']) && $data['data'] === 'OK') {
+        if (extractDeviceData($response) === 'OK') {
             return true;
         }
         logMessage("setVolume got unexpected response for $deviceIp: $response", 'debug');
@@ -250,8 +267,8 @@ function supportsVolumeControl($deviceIp) {
 function getCurrentChannel($deviceIp) {
     try {
         $response = makeApiCall('GET', $deviceIp, 'details/channel');
-        $data = json_decode($response, true);
-        return isset($data['data']) ? intval($data['data']) : null;
+        $value = extractDeviceData($response);
+        return $value !== null && is_numeric($value) ? intval($value) : null;
     } catch (Exception $e) {
         logMessage('Error getting current channel: ' . $e->getMessage(), 'error');
         return null;
@@ -269,8 +286,7 @@ function getCurrentChannel($deviceIp) {
 function setChannel($deviceIp, $channel) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/channel', $channel, 'text/plain');
-        $data = json_decode($response, true);
-        if (isset($data['data']) && $data['data'] === 'OK') {
+        if (extractDeviceData($response) === 'OK') {
             return true;
         }
         // Non-standard response but request was delivered — treat as success
@@ -298,12 +314,59 @@ function setChannel($deviceIp, $channel) {
 // ============================================================================
 
 /**
- * Cache for device models to avoid redundant API calls
+ * In-process cache for device models (per-request)
  */
 $_deviceModelCache = [];
 
 /**
+ * Persistent device model cache TTL (seconds).  Models never change on a
+ * given device so a generous TTL is safe; 1 hour lets us absorb device
+ * restarts or IP swaps within a reasonable window.
+ */
+if (!defined('DEVICE_MODEL_CACHE_TTL')) define('DEVICE_MODEL_CACHE_TTL', 3600);
+
+/**
+ * Path for the persistent device-model cache file.
+ * Stored alongside utils.php so it inherits the same permissions.
+ */
+function _deviceModelCacheFile() {
+    return __DIR__ . '/.device_model_cache.json';
+}
+
+/**
+ * Load the persistent device model cache from disk.  Returns a map of
+ * ip => ['model' => string, 'ts' => int]
+ */
+function _loadPersistentModelCache() {
+    $path = _deviceModelCacheFile();
+    if (!file_exists($path)) return [];
+    $raw = @file_get_contents($path);
+    if ($raw === false || $raw === '') return [];
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Save the persistent device model cache.  Best-effort — failures are swallowed.
+ */
+function _savePersistentModelCache(array $cache) {
+    $path = _deviceModelCacheFile();
+    $json = json_encode($cache);
+    if ($json === false) return;
+    // Atomic write: write to tmp then rename
+    $tmp = $path . '.tmp.' . getmypid();
+    if (@file_put_contents($tmp, $json) === false) return;
+    @rename($tmp, $path);
+}
+
+/**
  * Get device model string with caching
+ *
+ * Uses a two-layer cache: an in-process array for the current request
+ * and a short-lived file cache shared across requests.  Non-empty models
+ * are considered stable and cached for DEVICE_MODEL_CACHE_TTL seconds.
+ * Empty-string entries (unreachable device) are cached for a much shorter
+ * window (60 s) so a reboot is picked up quickly.
  *
  * @param string $deviceIp Device IP address
  * @param bool $forceRefresh Force a fresh API call
@@ -312,24 +375,43 @@ $_deviceModelCache = [];
 function getDeviceModel($deviceIp, $forceRefresh = false) {
     global $_deviceModelCache;
 
-    // Return cached model if available
     if (!$forceRefresh && isset($_deviceModelCache[$deviceIp])) {
         return $_deviceModelCache[$deviceIp];
     }
 
+    // Try persistent cache
+    if (!$forceRefresh) {
+        $persistent = _loadPersistentModelCache();
+        if (isset($persistent[$deviceIp]['ts'], $persistent[$deviceIp]['model'])) {
+            $age = time() - (int) $persistent[$deviceIp]['ts'];
+            $ttl = $persistent[$deviceIp]['model'] === '' ? 60 : DEVICE_MODEL_CACHE_TTL;
+            if ($age < $ttl) {
+                $_deviceModelCache[$deviceIp] = $persistent[$deviceIp]['model'];
+                return $persistent[$deviceIp]['model'];
+            }
+        }
+    }
+
     try {
         $response = makeApiCall('GET', $deviceIp, 'details/device/model');
-        $data = json_decode($response, true);
-        $model = isset($data['data']) ? $data['data'] : '';
+        $value = extractDeviceData($response);
+        $model = is_string($value) ? $value : '';
 
-        // Cache the result
         $_deviceModelCache[$deviceIp] = $model;
+
+        $persistent = _loadPersistentModelCache();
+        $persistent[$deviceIp] = ['model' => $model, 'ts' => time()];
+        _savePersistentModelCache($persistent);
 
         return $model;
     } catch (Exception $e) {
         logMessage('Error getting device model: ' . $e->getMessage(), 'error');
-        // Cache empty string to avoid repeated failed calls
         $_deviceModelCache[$deviceIp] = '';
+
+        $persistent = _loadPersistentModelCache();
+        $persistent[$deviceIp] = ['model' => '', 'ts' => time()];
+        _savePersistentModelCache($persistent);
+
         return '';
     }
 }
@@ -358,8 +440,7 @@ function setDspAudioState($deviceIp, $type, $enabled) {
     try {
         $state = $enabled ? '"on"' : '"off"';
         $response = makeApiCall('POST', $deviceIp, "command/audio/dsp/$type", $state, 'application/json');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        return extractDeviceData($response) === 'OK';
     } catch (Exception $e) {
         logMessage("DSP $type audio control not available for $deviceIp: " . $e->getMessage(), 'info');
         return false;
@@ -372,8 +453,7 @@ function setDspAudioState($deviceIp, $type, $enabled) {
 function disableHdmiAudio($deviceIp) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/hdmi/audio/mute', null);
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        return extractDeviceData($response) === 'OK';
     } catch (Exception $e) {
         logMessage('Error disabling HDMI audio: ' . $e->getMessage(), 'error');
         return false;
@@ -386,8 +466,7 @@ function disableHdmiAudio($deviceIp) {
 function enableHdmiAudio($deviceIp) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/hdmi/audio/unmute', null);
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        return extractDeviceData($response) === 'OK';
     } catch (Exception $e) {
         logMessage('Error enabling HDMI audio: ' . $e->getMessage(), 'error');
         return false;
@@ -400,8 +479,7 @@ function enableHdmiAudio($deviceIp) {
 function disableStereoAudio($deviceIp) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/cli', 'audio_out.sh mute', 'text/plain');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        return extractDeviceData($response) === 'OK';
     } catch (Exception $e) {
         logMessage('Error disabling stereo audio: ' . $e->getMessage(), 'error');
         return false;
@@ -414,8 +492,7 @@ function disableStereoAudio($deviceIp) {
 function enableStereoAudio($deviceIp) {
     try {
         $response = makeApiCall('POST', $deviceIp, 'command/cli', 'audio_out.sh unmute', 'text/plain');
-        $data = json_decode($response, true);
-        return isset($data['data']) && $data['data'] === 'OK';
+        return extractDeviceData($response) === 'OK';
     } catch (Exception $e) {
         logMessage('Error enabling stereo audio: ' . $e->getMessage(), 'error');
         return false;
@@ -537,6 +614,47 @@ function sanitizeInput($data, $type, $options = []) {
 // ============================================================================
 
 /**
+ * Maximum log file size (bytes) before rotation. 1 MB by default.
+ */
+if (!defined('LOG_MAX_BYTES')) define('LOG_MAX_BYTES', 1048576);
+
+/**
+ * Number of rotated log files to retain (plus the active log).
+ */
+if (!defined('LOG_ROTATE_KEEP')) define('LOG_ROTATE_KEEP', 2);
+
+/**
+ * Rotate a log file when it exceeds LOG_MAX_BYTES.
+ * Keeps LOG_ROTATE_KEEP historical copies as .1, .2, ...
+ *
+ * Rotation is best-effort: any I/O failure is silently swallowed so that a
+ * full disk or permissions glitch cannot break the calling request.
+ */
+function rotateLogFileIfNeeded($logFile) {
+    if (!is_string($logFile) || $logFile === '' || !file_exists($logFile)) {
+        return;
+    }
+    $size = @filesize($logFile);
+    if ($size === false || $size < LOG_MAX_BYTES) {
+        return;
+    }
+
+    // Shift existing .N files back, drop the oldest
+    for ($i = LOG_ROTATE_KEEP; $i >= 1; $i--) {
+        $src = $logFile . '.' . $i;
+        $dst = $logFile . '.' . ($i + 1);
+        if ($i === LOG_ROTATE_KEEP && file_exists($src)) {
+            @unlink($src);
+            continue;
+        }
+        if (file_exists($src)) {
+            @rename($src, $dst);
+        }
+    }
+    @rename($logFile, $logFile . '.1');
+}
+
+/**
  * Log messages to file
  */
 function logMessage($message, $level = 'info') {
@@ -548,6 +666,7 @@ function logMessage($message, $level = 'info') {
         $timestamp = date('Y-m-d H:i:s');
         $formattedMessage = "[$timestamp] [$level] $message" . PHP_EOL;
         $logFile = defined('LOG_FILE') ? LOG_FILE : __DIR__ . '/av_controls.log';
+        rotateLogFileIfNeeded($logFile);
         error_log($formattedMessage, 3, $logFile);
     }
 }

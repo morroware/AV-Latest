@@ -23,6 +23,33 @@ function sanitizeZoneId(string $id): string
 }
 
 /**
+ * Check that a PHP source string parses cleanly without evaluating it.
+ * Uses `php -l` via a short-lived temp file so we don't rely on tokenizer
+ * edge cases or execute the code in the current process.
+ *
+ * @return bool True if the content parses, false otherwise.
+ */
+function _validatePhpSyntax(string $content): bool
+{
+    $tmp = tempnam(sys_get_temp_dir(), 'avsyn_');
+    if ($tmp === false) {
+        return true; // Can't verify — fail open rather than block a valid change
+    }
+    try {
+        if (@file_put_contents($tmp, $content) === false) {
+            return true;
+        }
+        $command = sprintf('php -l %s 2>&1', escapeshellarg($tmp));
+        $output = [];
+        $exitCode = 0;
+        exec($command, $output, $exitCode);
+        return $exitCode === 0;
+    } finally {
+        @unlink($tmp);
+    }
+}
+
+/**
  * Static cache for zones configuration
  * Prevents multiple file reads within the same request
  */
@@ -97,9 +124,11 @@ function saveZonesConfig(array $config): bool
         return false;
     }
 
-    // Wait up to 5 seconds for lock
+    // Wait up to 15 seconds for lock.  Bulk operations (zone reorder from the
+    // manager) can trigger several rapid saveZonesConfig() calls and 5s is
+    // tight enough that legitimate requests hit the timeout.
     $lockAcquired = false;
-    for ($i = 0; $i < 50; $i++) {
+    for ($i = 0; $i < 150; $i++) {
         if (flock($lockHandle, LOCK_EX | LOCK_NB)) {
             $lockAcquired = true;
             break;
@@ -887,10 +916,24 @@ function propagateReceiverIpChanges(array $ipChanges, string $skipZoneDir = ''):
             // Use a pattern that finds the IP value within ~200 chars after the name
             $pattern = '/(' . $escapedName . '[\'"].*?[\'"]ip[\'"]\\s*=>\\s*[\'"])' . $escapedOldIp . '([\'"])/s';
             $replacement = '${1}' . $change['new'] . '${2}';
-            $content = preg_replace($pattern, $replacement, $content, 1);
+            $candidate = preg_replace($pattern, $replacement, $content, 1);
+            // preg_replace returns null on regex error — refuse to advance
+            // with a null/empty string that would corrupt the config file.
+            if (is_string($candidate) && $candidate !== '') {
+                $content = $candidate;
+            } else {
+                error_log("IP propagation regex failed for receiver '$name' in zone '$zoneId'");
+            }
         }
 
-        if ($content !== $originalContent) {
+        if ($content !== $originalContent && $content !== '') {
+            // Extra safety: make sure the new content still parses as PHP before
+            // overwriting.  A broken config.php breaks the whole zone.
+            $syntaxOk = _validatePhpSyntax($content);
+            if (!$syntaxOk) {
+                error_log("IP propagation aborted for zone '$zoneId' — resulting config.php would not parse");
+                continue;
+            }
             file_put_contents($configFile, $content);
             // Invalidate OPcache so PHP loads the updated config immediately
             if (function_exists('opcache_invalidate')) {
