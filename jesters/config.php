@@ -28,10 +28,10 @@ const RECEIVERS = [
 ];
 
 const TRANSMITTERS = [
-    'Apple TV' => 7,
+    'Apple TV' => 9,
     'RockBot Audio' => 5,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 1 (Attic TX 1)' => 9,
+    'Cable Box 1 (Attic TX 1)' => 7,
     'Mobile Video TX' => 2,
     'Wireless Mic TX' => 8,
     'Cable Box 3 (Attic TX 3)' => 4,
