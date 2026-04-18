@@ -342,7 +342,10 @@ class BaseController {
             return $response;
         }
 
-        if (empty($action)) {
+        // Use strict string check — empty() treats the literal string "0"
+        // as empty, which blocks the digit-0 IR command and breaks
+        // multi-digit favorites like channel 70.
+        if ($action === '' || $action === null) {
             $response['message'] = "No action specified";
             return $response;
         }
