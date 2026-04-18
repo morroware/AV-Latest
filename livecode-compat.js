@@ -216,6 +216,22 @@
 
             // Use native fetch if available and not in problematic context
             if (window.fetch && !isLiveCode) {
+                // Honor options.timeout even on the native path so callers
+                // get consistent semantics across LiveCode and regular browsers.
+                if (options.timeout && typeof AbortController !== 'undefined' && !options.signal) {
+                    var ac = new AbortController();
+                    var nativeOpts = {};
+                    for (var k in options) { if (options.hasOwnProperty(k)) nativeOpts[k] = options[k]; }
+                    nativeOpts.signal = ac.signal;
+                    var timer = setTimeout(function() { ac.abort(); }, options.timeout);
+                    return window.fetch(url, nativeOpts).then(function(resp) {
+                        clearTimeout(timer);
+                        return resp;
+                    }, function(err) {
+                        clearTimeout(timer);
+                        throw err;
+                    });
+                }
                 return window.fetch(url, options);
             }
 
@@ -233,8 +249,10 @@
                     });
                 }
 
-                // Handle timeout
-                var timeoutMs = options.timeout || 30000;
+                // Default timeout tuned for LiveCode widget: 8s is enough for
+                // any same-origin static/asset fetch over the private network,
+                // and short enough to fail fast if the widget stalls.
+                var timeoutMs = options.timeout || 8000;
                 var timeoutId = setTimeout(function() {
                     xhr.abort();
                     reject(new Error('Request timeout'));
