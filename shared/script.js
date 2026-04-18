@@ -603,7 +603,7 @@ function showResponseMessage(message, success) {
 
 // Remote Control Functions
 function loadTransmitters() {
-    compatFetch('transmitters.txt')
+    compatFetch('transmitters.txt', { timeout: 4000 })
         .then(response => response.text())
         .then(data => {
             const transmitters = data.split('\n').filter(line => line.trim() !== '');
@@ -631,30 +631,70 @@ function loadTransmitters() {
         });
 }
 
+// Track in-flight remote commands to prevent double-fire from rapid/ghost taps
+// in the LiveCode browser widget. Key: `${transmitter}|${action}`.
+const _remoteInFlight = new Map();
+const REMOTE_DEBOUNCE_MS = 350;
+const REMOTE_TIMEOUT_MS = 5000;
+
 function sendCommand(action) {
     const transmitter = document.getElementById('transmitter');
     if (!transmitter || !transmitter.value) {
         showError('Please select a transmitter');
-        return;
+        return Promise.resolve({ success: false, skipped: true });
     }
 
-    $.ajax({
-        url: '', // Use current page - handled by BaseController
-        type: 'POST',
-        data: {
-            device_url: transmitter.value,
-            action: action
-        },
-        dataType: 'json'
-    }).then(function(response) {
-        if (response.success) {
-            showResponseMessage('Command sent: ' + action, true);
-        } else {
-            showResponseMessage(response.message || 'Command failed', false);
-        }
-    }).fail(function(jqXHR, textStatus) {
-        showResponseMessage('Failed to send command', false);
-        console.error('Remote command request failed:', textStatus);
+    // Snapshot the transmitter URL at tap time so a mid-flight dropdown change
+    // can't redirect the in-flight request to a different device.
+    const deviceUrl = transmitter.value;
+    const key = deviceUrl + '|' + action;
+    const now = Date.now();
+    const last = _remoteInFlight.get(key);
+    if (last && (now - last) < REMOTE_DEBOUNCE_MS) {
+        // Duplicate tap within debounce window — silently drop.
+        return Promise.resolve({ success: true, skipped: true });
+    }
+    _remoteInFlight.set(key, now);
+
+    return new Promise(function(resolve) {
+        $.ajax({
+            url: '', // Use current page - handled by BaseController
+            type: 'POST',
+            data: {
+                device_url: deviceUrl,
+                action: action
+            },
+            dataType: 'json',
+            timeout: REMOTE_TIMEOUT_MS
+        }).then(function(response) {
+            if (response && response.success) {
+                showResponseMessage('Command sent: ' + action, true);
+                resolve({ success: true });
+            } else {
+                showResponseMessage((response && response.message) || 'Command failed', false);
+                resolve({ success: false });
+            }
+        }).fail(function(jqXHR, textStatus) {
+            // IR is fire-and-forget on the server: timeouts / empty replies
+            // do NOT mean the command failed (see shared/api.php and
+            // BaseController::handleRemoteControlRequest). Treat them as sent.
+            if (textStatus === 'timeout' || (jqXHR && jqXHR.status === 0 && textStatus !== 'abort')) {
+                showResponseMessage('Command sent: ' + action, true);
+                resolve({ success: true, softFail: textStatus });
+            } else {
+                showResponseMessage('Failed to send command', false);
+                console.error('Remote command request failed:', textStatus);
+                resolve({ success: false });
+            }
+        }).always(function() {
+            // Release the debounce slot shortly after — keeps single-key
+            // repeats (e.g. holding CH+) working while still blocking double-fires.
+            setTimeout(function() {
+                if (_remoteInFlight.get(key) === now) {
+                    _remoteInFlight.delete(key);
+                }
+            }, REMOTE_DEBOUNCE_MS);
+        });
     });
 }
 
@@ -674,16 +714,22 @@ function showError(message) {
     }, 5000);
 }
 
-// Send a channel number by pressing each digit sequentially
+// Send a channel number by pressing each digit sequentially.
+// Each digit waits for the previous POST to finish, then a fixed gap,
+// before the next digit is sent. This guarantees in-order delivery even
+// when the LiveCode browser widget's XHR latency spikes.
 function sendChannelNumber(channelNumber) {
     const digits = channelNumber.toString().split('');
-    const delay = 1000; // 1000ms between each digit press (cable boxes need time to register each digit)
-
+    const gapMs = 800; // gap between one digit's response and the next digit's send
+    let chain = Promise.resolve();
     digits.forEach((digit, index) => {
-        setTimeout(() => {
-            sendCommand(digit);
-        }, index * delay);
+        chain = chain.then(() => sendCommand(digit)).then(() => {
+            if (index < digits.length - 1) {
+                return new Promise(r => setTimeout(r, gapMs));
+            }
+        });
     });
+    return chain;
 }
 
 // Load favorite channels if available
@@ -703,7 +749,7 @@ function loadFavoriteChannels() {
         }
 
         const path = pathCandidates[pathIndex];
-        return compatFetch(path)
+        return compatFetch(path, { timeout: 3000 })
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status} from ${path}`);
                 return response.text();
