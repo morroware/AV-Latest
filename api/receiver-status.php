@@ -18,6 +18,7 @@
 
 // Include shared utilities
 require_once __DIR__ . '/../shared/utils.php';
+require_once __DIR__ . '/../shared/cache.php';
 
 // Set JSON response header
 header('Content-Type: application/json');
@@ -36,6 +37,22 @@ if (!$deviceIp) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid or missing IP address']);
     exit;
+}
+
+// Cache successful responses for 5 seconds.  This collapses the thundering
+// herd when a page with 24 receivers loads: duplicate hits from the same
+// browser session (or a rapid refresh) are answered from the cache.  A bypass
+// parameter lets the UI force a fresh read after the user changes something.
+$forceRefresh = !empty($_GET['fresh']);
+$cacheKey = 'receiver_status_' . $deviceIp;
+$cacheTtl = 5;
+
+if (!$forceRefresh) {
+    $cached = cacheGet($cacheKey, $cacheTtl);
+    if (is_array($cached)) {
+        echo json_encode($cached);
+        exit;
+    }
 }
 
 // Fetch receiver status
@@ -64,6 +81,9 @@ try {
         $volume = getCurrentVolume($deviceIp);
         $response['volume'] = $volume;
     }
+
+    // Only cache successful responses — never cache an unreachable state
+    cacheSet($cacheKey, $response);
 
 } catch (Exception $e) {
     $response['success'] = false;

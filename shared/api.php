@@ -88,6 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deviceUrl = rtrim($_POST['device_url'], '/');
     $action = $_POST['action'];
 
+    // Validate device_url points to a real IP (prevents SSRF to arbitrary hosts)
+    $urlHost = $deviceUrl;
+    if (preg_match('#^https?://#i', $urlHost)) {
+        $parsed = parse_url($urlHost);
+        $urlHost = $parsed['host'] ?? '';
+    }
+    $urlHost = preg_replace('/:[0-9]+$/', '', $urlHost);
+    if (!filter_var($urlHost, FILTER_VALIDATE_IP)) {
+        echo json_encode(['success' => false, 'error' => 'Invalid device URL']);
+        exit;
+    }
+
     $payloads = loadPayloads($zoneDir . '/payloads.txt');
 
     if (!isset($payloads[$action])) {
@@ -96,7 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $url = $deviceUrl . "/cgi-bin/api/command/cli";
-    $payload = 'echo "' . $payloads[$action] . '" | ./fluxhandlerV2.sh';
+    // Escape payload content — payloads.txt is admin-controlled but this
+    // removes any risk of shell metacharacters in a payload line being
+    // interpreted by the remote shell.
+    $payload = 'echo ' . escapeshellarg($payloads[$action]) . ' | ./fluxhandlerV2.sh';
 
     $result = sendApiRequest($url, $payload);
 

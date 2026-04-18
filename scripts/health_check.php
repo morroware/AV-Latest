@@ -274,6 +274,76 @@ function validateWledIps(string $root, array &$errors, array &$warnings, int &$c
     ok('WLED IP validation complete.');
 }
 
+/**
+ * Detect receivers with the same display name but different IPs across zones.
+ * These lead to broken IP propagation and confusing Devices pages.
+ */
+function validateReceiverNameConsistency(string $root, array &$errors, array &$warnings, int &$checks): void
+{
+    $zonesPath = $root . '/zones.json';
+    if (!is_file($zonesPath)) return;
+
+    $zones = json_decode((string) file_get_contents($zonesPath), true);
+    if (!is_array($zones) || empty($zones['zones'])) return;
+
+    $loaderScript = $root . '/shared/zones.php';
+    if (!is_file($loaderScript)) return;
+    require_once $loaderScript;
+
+    // Map receiver-name -> ip -> [zoneIds]
+    $nameIpMap = [];
+    foreach ($zones['zones'] as $zone) {
+        $zoneId = $zone['id'] ?? '';
+        if (!$zoneId || in_array($zoneId, ['multi', 'all'])) continue;
+
+        $receivers = loadZoneReceivers($zoneId);
+        foreach ($receivers as $name => $config) {
+            $ip = $config['ip'] ?? '';
+            if ($name === '' || $ip === '') continue;
+            $nameIpMap[$name][$ip][] = $zoneId;
+        }
+    }
+
+    foreach ($nameIpMap as $name => $byIp) {
+        $checks++;
+        if (count($byIp) > 1) {
+            $details = [];
+            foreach ($byIp as $ip => $zoneIds) {
+                $details[] = sprintf('%s in %s', $ip, implode('/', array_unique($zoneIds)));
+            }
+            warn(
+                "Receiver name '{$name}' appears with conflicting IPs: " . implode('; ', $details),
+                $warnings
+            );
+        }
+    }
+
+    ok('Receiver name consistency validation complete.');
+}
+
+/**
+ * Warn on log files that have grown unusually large.  The runtime now rotates
+ * logs at 1 MB, but legacy pre-rotation files may still exist.
+ */
+function validateLogFileSizes(string $root, array &$warnings, int &$checks): void
+{
+    $threshold = 5 * 1024 * 1024; // 5 MB — roughly 5x the rotation target
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+    foreach ($iterator as $fileInfo) {
+        if (!$fileInfo->isFile()) continue;
+        if ($fileInfo->getExtension() !== 'log') continue;
+        $checks++;
+        if ($fileInfo->getSize() > $threshold) {
+            $relative = ltrim(str_replace($root, '', $fileInfo->getPathname()), '/');
+            warn(
+                sprintf('Log file %s is %.1f MB — consider pruning.', $relative, $fileInfo->getSize() / 1048576),
+                $warnings
+            );
+        }
+    }
+    ok('Log file size check complete.');
+}
+
 $startTime = microtime(true);
 $root = dirname(__DIR__);
 
@@ -281,6 +351,8 @@ validateZones($root, $errors, $checks);
 validateTopLevelJsonFiles($root, $errors, $warnings, $checks);
 validateReceiverIps($root, $errors, $warnings, $checks);
 validateWledIps($root, $errors, $warnings, $checks);
+validateReceiverNameConsistency($root, $errors, $warnings, $checks);
+validateLogFileSizes($root, $warnings, $checks);
 lintPhpFiles($root, $errors, $checks);
 
 $durationMs = (int) round((microtime(true) - $startTime) * 1000);

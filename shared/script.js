@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Lazy-load receiver status after page load
     lazyLoadReceivers();
+
+    // Start cross-PC polling so changes made on one browser are reflected
+    // on every other open browser within RECEIVER_POLL_INTERVAL_MS.
+    startReceiverPolling();
 });
 
 // Add loading state to an element
@@ -74,6 +78,10 @@ function initializeReceiverControls() {
         receiverCard.addClass('updating');
         select.prop('disabled', true);
 
+        // Suppress polling for a few seconds so the dropdown doesn't flicker
+        // back to the previous channel while the device is still transitioning.
+        markReceiverWritten(receiverCard[0]);
+
         const data = new FormData();
         data.append('receiver_ip', deviceIp);
         data.append('channel', this.value);
@@ -86,6 +94,9 @@ function initializeReceiverControls() {
             contentType: false,
             dataType: 'json',
             success: function(response) {
+                if (response.success) {
+                    markReceiverWritten(receiverCard[0]);
+                }
                 showResponseMessage(response.success ? `Switched to ${channelName}` : response.message, response.success);
                 announce(response.success ? `Channel changed to ${channelName}` : 'Channel change failed');
             },
@@ -134,28 +145,39 @@ function initializeReceiverControls() {
         });
     });
 
-    // Debounced auto-submit for volume changes
-    let volumeTimeout = null;
+    // Debounced auto-submit for volume changes.  Per-slider timeout so two
+    // receivers can be adjusted in quick succession without one cancelling
+    // the other's pending request.  On failure we revert the slider to the
+    // last value the device accepted, so the UI never misrepresents state.
     $(document).on('input', '.volume-slider, input[type="range"].auto-submit', function() {
         const slider = this;
         const $slider = $(slider);
         const receiverCard = $slider.closest('.receiver');
         const deviceIp = $slider.data('ip') || receiverCard.data('ip');
 
-        // Update volume label immediately
-        updateVolumeLabel(slider);
-
-        // Debounce volume changes to avoid too many requests
-        if (volumeTimeout) {
-            clearTimeout(volumeTimeout);
+        // Remember the starting value the first time the user drags this slider
+        if (typeof slider._lastConfirmedValue === 'undefined') {
+            slider._lastConfirmedValue = slider.value;
         }
 
-        volumeTimeout = setTimeout(() => {
+        // Update volume label immediately for visual responsiveness
+        updateVolumeLabel(slider);
+
+        // Suppress polling during drag so the slider doesn't snap back to the
+        // device's old value mid-adjustment.
+        markReceiverWritten(receiverCard[0]);
+
+        if (slider._volumeTimeout) {
+            clearTimeout(slider._volumeTimeout);
+        }
+
+        slider._volumeTimeout = setTimeout(() => {
             receiverCard.addClass('updating');
+            const attemptedValue = slider.value;
 
             const data = new FormData();
             data.append('receiver_ip', deviceIp);
-            data.append('volume', slider.value);
+            data.append('volume', attemptedValue);
 
             $.ajax({
                 url: '',
@@ -165,13 +187,21 @@ function initializeReceiverControls() {
                 contentType: false,
                 dataType: 'json',
                 success: function(response) {
-                    // Only show message on error - volume feedback is visual
-                    if (!response.success) {
+                    if (response.success) {
+                        slider._lastConfirmedValue = attemptedValue;
+                        markReceiverWritten(receiverCard[0]);
+                        announce(`Volume set to ${attemptedValue}`);
+                    } else {
+                        // Device unreachable or rejected — revert UI so the
+                        // slider matches the device state.
+                        slider.value = slider._lastConfirmedValue;
+                        updateVolumeLabel(slider);
                         showResponseMessage(response.message || 'Volume update failed', false);
                     }
-                    announce(`Volume set to ${slider.value}`);
                 },
                 error: function() {
+                    slider.value = slider._lastConfirmedValue;
+                    updateVolumeLabel(slider);
                     showResponseMessage('Failed to update volume. Check device connection.', false);
                 },
                 complete: function() {
@@ -925,3 +955,128 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ============================================================================
+// CROSS-BROWSER POLLING
+// ----------------------------------------------------------------------------
+// Keeps receiver controls in sync across several PCs viewing the same zone.
+// Every RECEIVER_POLL_INTERVAL_MS the client re-fetches receiver status and
+// updates the UI only when: the element is not focused by the local user AND
+// the local user has not written to that receiver in the last
+// POLL_SKIP_AFTER_WRITE_MS.  The server-side 5s cache in receiver-status.php
+// collapses the traffic so N polling PCs * M receivers stays manageable.
+// ============================================================================
+
+const RECEIVER_POLL_INTERVAL_MS = 7000;
+const POLL_SKIP_AFTER_WRITE_MS = 3000;
+let _pollTimer = null;
+let _pollAbortController = null;
+
+function markReceiverWritten(receiverElement) {
+    if (receiverElement) {
+        receiverElement._lastWriteTime = Date.now();
+    }
+}
+
+function startReceiverPolling() {
+    if (_pollTimer) return;
+    _pollTimer = setInterval(pollAllReceivers, RECEIVER_POLL_INTERVAL_MS);
+}
+
+function stopReceiverPolling() {
+    if (_pollTimer) {
+        clearInterval(_pollTimer);
+        _pollTimer = null;
+    }
+    if (_pollAbortController) {
+        try { _pollAbortController.abort(); } catch (e) { /* ignore */ }
+        _pollAbortController = null;
+    }
+}
+
+function pollAllReceivers() {
+    if (document.visibilityState === 'hidden') return;
+
+    const receivers = document.querySelectorAll('.receiver:not(.receiver-loading)');
+    if (receivers.length === 0) return;
+
+    // Abort any still-inflight requests from the previous cycle — fresher
+    // data is only RECEIVER_POLL_INTERVAL_MS away so there is no value in
+    // hanging onto stale promises.
+    if (_pollAbortController) {
+        try { _pollAbortController.abort(); } catch (e) { /* ignore */ }
+    }
+    _pollAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const signal = _pollAbortController ? _pollAbortController.signal : undefined;
+
+    receivers.forEach(function(receiver) {
+        const ip = receiver.dataset.ip;
+        if (!ip) return;
+        pollReceiver(receiver, ip, signal);
+    });
+}
+
+function pollReceiver(receiverElement, ip, signal) {
+    // Skip polling updates shortly after a local write.  The remote device
+    // may still be transitioning, so trusting the poll value would flicker
+    // the UI back to the old state.
+    const lastWrite = receiverElement._lastWriteTime || 0;
+    if (Date.now() - lastWrite < POLL_SKIP_AFTER_WRITE_MS) return;
+
+    const fetchOpts = signal ? { signal: signal } : {};
+    compatFetch('../api/receiver-status.php?ip=' + encodeURIComponent(ip), fetchOpts)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!data || !data.success) return;
+
+            // Re-check the write-skip window — another handler may have run
+            // between dispatch and response completion.
+            if (Date.now() - (receiverElement._lastWriteTime || 0) < POLL_SKIP_AFTER_WRITE_MS) {
+                return;
+            }
+
+            // Channel: only swap if the option exists so we never clear the
+            // dropdown when transmitters.txt disagrees with the device.
+            const channelSelect = receiverElement.querySelector('.channel-select');
+            if (channelSelect && document.activeElement !== channelSelect && data.channel !== null) {
+                const nextChannel = String(data.channel);
+                if (channelSelect.value !== nextChannel) {
+                    const hasOption = Array.prototype.some.call(
+                        channelSelect.options,
+                        function(opt) { return opt.value === nextChannel; }
+                    );
+                    if (hasOption) channelSelect.value = nextChannel;
+                }
+            }
+
+            // Volume: skip if the slider is focused (being dragged) or if
+            // the user has a pending debounced write on this receiver.
+            const volumeSlider = receiverElement.querySelector('.volume-slider');
+            if (volumeSlider && document.activeElement !== volumeSlider && data.volume !== null) {
+                const nextVolume = String(data.volume);
+                if (volumeSlider.value !== nextVolume) {
+                    volumeSlider.value = nextVolume;
+                    volumeSlider._lastConfirmedValue = nextVolume;
+                    updateVolumeLabel(volumeSlider);
+                }
+            }
+        })
+        .catch(function(err) {
+            // AbortError is expected when a new cycle cancels this one;
+            // everything else is a transient network issue we swallow so the
+            // polling loop never alerts the user.
+            if (err && err.name !== 'AbortError') {
+                /* no-op */
+            }
+        });
+}
+
+// Pause polling when the tab is hidden to avoid wasting bandwidth and
+// device I/O on a browser nobody is looking at.  Resume on return.
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+        stopReceiverPolling();
+    } else {
+        startReceiverPolling();
+    }
+});

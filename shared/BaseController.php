@@ -159,11 +159,10 @@ class BaseController {
 
         try {
             $commandResponse = makeApiCall('POST', $deviceIp, 'command/cli', $powerCommand, 'text/plain');
-            $responseData = json_decode($commandResponse, true);
 
             logMessage("POWER DEBUG [{$deviceIp}]: response='{$commandResponse}'", 'debug');
 
-            if (isset($responseData['data']) && $responseData['data'] === 'OK') {
+            if (extractDeviceData($commandResponse) === 'OK') {
                 $response['success'] = true;
                 $response['message'] = "Power command sent successfully.";
             } else {
@@ -175,6 +174,19 @@ class BaseController {
         }
 
         return $response;
+    }
+
+    /**
+     * Invalidate the shared receiver-status cache for a device IP.
+     * Best-effort: failures are silent.  Called after any command that
+     * changes device state so subsequent lazy-loads return fresh data.
+     */
+    protected function invalidateReceiverStatusCache($deviceIp) {
+        $cachePath = __DIR__ . '/.cache';
+        if (!is_dir($cachePath)) return;
+        foreach (glob($cachePath . '/receiver_status_' . $deviceIp . '.*.cache') ?: [] as $file) {
+            @unlink($file);
+        }
     }
 
     /**
@@ -205,6 +217,9 @@ class BaseController {
             $response['success'] = $volumeResponse;
             $response['message'] = "Volume: " . ($volumeResponse ? "Successfully updated" : "Update failed");
             logMessage("Volume updated for $deviceIp to $selectedVolume - Result: " . ($volumeResponse ? "Success" : "Failed"), 'info');
+            if ($volumeResponse) {
+                $this->invalidateReceiverStatusCache($deviceIp);
+            }
         } catch (Exception $e) {
             $response['message'] = "Error updating volume: " . $e->getMessage();
             logMessage("Error updating volume: " . $e->getMessage(), 'error');
@@ -241,6 +256,9 @@ class BaseController {
             $response['success'] = $channelResponse;
             $response['message'] = "Channel: " . ($channelResponse ? "Successfully updated" : "Update failed");
             logMessage("Channel updated for $deviceIp to $selectedChannel - Result: " . ($channelResponse ? "Success" : "Failed"), 'info');
+            if ($channelResponse) {
+                $this->invalidateReceiverStatusCache($deviceIp);
+            }
         } catch (Exception $e) {
             $response['message'] = "Error updating channel: " . $e->getMessage();
             logMessage("Error updating channel: " . $e->getMessage(), 'error');
@@ -290,6 +308,9 @@ class BaseController {
 
             // Only report success if channel change succeeded (volume is secondary)
             $response['success'] = $channelSuccess;
+            if ($channelSuccess || $volumeSuccess) {
+                $this->invalidateReceiverStatusCache($deviceIp);
+            }
         } catch (Exception $e) {
             $response['message'] = "Error updating settings: " . $e->getMessage();
             logMessage("Error updating settings: " . $e->getMessage(), 'error');
@@ -336,7 +357,11 @@ class BaseController {
         }
 
         try {
-            $payload = 'echo "' . $payloads[$action] . '" | ./fluxhandlerV2.sh';
+            // Escape payload content for shell safety.  payloads.txt is
+            // admin-controlled but escapeshellarg() removes any risk of a
+            // stray quote, backtick, or $ in a payload line being interpreted
+            // by the remote shell.
+            $payload = 'echo ' . escapeshellarg($payloads[$action]) . ' | ./fluxhandlerV2.sh';
             $result = makeApiCall('POST', $deviceUrl, 'command/cli', $payload, 'text/plain');
             $response['success'] = true;
             $response['message'] = "Command sent successfully";
