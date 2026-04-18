@@ -5,21 +5,21 @@
  */
 
 const RECEIVERS = [
-    'Rink Music' => [
+    'Rink Music RX' => [
         'ip' => '192.168.8.35',
         'show_power' => false
     ],
-    'Rink Video Wall' => [
+    'Rink Video RX' => [
         'ip' => '192.168.8.29',
         'show_power' => false
     ],
 ];
 
 const TRANSMITTERS = [
-    'Apple TV' => 7,
+    'Apple TV' => 9,
     'RockBot Audio' => 5,
     'Cable Box 2 (Attic TX 2)' => 3,
-    'Cable Box 1 (Attic TX 1)' => 9,
+    'Cable Box 1 (Attic TX 1)' => 7,
     'Mobile Video TX' => 2,
     'Wireless Mic TX' => 8,
     'Cable Box 3 (Attic TX 3)' => 4,
