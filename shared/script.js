@@ -321,7 +321,18 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function isRokuTarget(receiverElement, deviceIp) {
+// Some TVs (Roku, certain Samsung/LG sets with aggressive CEC filtering) need
+// an extended retry sequence — direct CEC binary calls plus repeated
+// one-touch-play source selects — to reliably power on/off.  This used to be
+// hardcoded to specific IPs; it's now opt-in per receiver via the
+// `power_extended_retry` config flag (data-power-extended-retry on the card).
+// The original IP/name list stays as a fallback so existing deployments keep
+// working without a config edit.
+function needsExtendedCecRetry(receiverElement, deviceIp) {
+    if (receiverElement && receiverElement.dataset && receiverElement.dataset.powerExtendedRetry === '1') {
+        return true;
+    }
+
     const ip = String(deviceIp || '').trim();
     if (ip === '192.168.8.23' || ip === '192.168.8.44') {
         return true;
@@ -331,10 +342,15 @@ function isRokuTarget(receiverElement, deviceIp) {
     return name.includes('billiards tv') || name.includes('dining area tv');
 }
 
+// Backwards-compatible alias — older inlined calls may still reference this.
+function isRokuTarget(receiverElement, deviceIp) {
+    return needsExtendedCecRetry(receiverElement, deviceIp);
+}
+
 function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = true, options = {}) {
     const powerOnCommand = receiverElement.dataset.powerOnCommand || 'cec_tv_on.sh';
     const alternatePowerOnCommand = (powerOnCommand === 'cec_power_on_tv') ? 'cec_tv_on.sh' : 'cec_power_on_tv';
-    const rokuTarget = isRokuTarget(receiverElement, deviceIp);
+    const extendedRetry = needsExtendedCecRetry(receiverElement, deviceIp);
     const followupCommand = receiverElement.dataset.powerOnFollowupCommand;
     const followupFallbackCommand = receiverElement.dataset.powerOnFollowupFallbackCommand;
     const followupDelayMs = parseInt(receiverElement.dataset.powerOnFollowupDelayMs, 10) || 7000;
@@ -349,18 +365,26 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
         })
         .then(function(response) {
             // Match the bulk power-on strategy for individual buttons too:
-            // send both discrete variants to improve CEC reliability on Roku and similar TVs.
+            // send both discrete variants to improve CEC reliability across
+            // different TV brands (Roku, LG, Samsung, Sony behave differently).
             return waitMs(1500)
                 .then(() => sendPowerCommand(deviceIp, alternatePowerOnCommand, false).catch(() => null))
                 .then(function() {
-                    if (!rokuTarget) {
+                    if (!extendedRetry) {
                         return null;
                     }
 
-                    // Roku TVs are most reliable when receiving both script wrappers and
-                    // direct CEC binaries for one-touch-play wake behavior.
+                    // Extended retry: TVs with aggressive CEC filtering wake more
+                    // reliably when the direct binary (cec_power_on_tv) is sent
+                    // again with a gap — it issues both System Standby-Off (0x04)
+                    // and Image/Text View-On (0x82/0x0D) on the CEC bus.
+                    // NOTE: this previously sent the uppercase string 'CEC_TV_ON',
+                    // which is not a valid command on the JAP device's Linux
+                    // shell (filenames are case-sensitive) — it was effectively a
+                    // no-op that only served to pace the sequence.  We now send
+                    // the real binary so the retry actually does something.
                     return waitMs(1000)
-                        .then(() => sendPowerCommand(deviceIp, 'CEC_TV_ON', false).catch(() => null))
+                        .then(() => sendPowerCommand(deviceIp, 'cec_power_on_tv', false).catch(() => null))
                         .then(() => waitMs(1000))
                         .then(() => sendPowerCommand(deviceIp, 'cec_watch_me.sh', false).catch(() => null));
                 })
@@ -379,8 +403,8 @@ function sendConfiguredPowerOn(receiverElement, deviceIp, showNotification = tru
                 .then(() => sendPowerCommand(deviceIp, followupCommand, false).catch(() => null))
                 .then(function() {
                     // HTTP success does not guarantee HDMI input actually switched.
-                    // For Roku, always send an additional input-selection pass.
-                    if (!rokuTarget) {
+                    // For TVs flagged for extended retry, do additional source-select passes.
+                    if (!extendedRetry) {
                         return null;
                     }
 
@@ -408,7 +432,7 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
     const alternatePowerOffCommand = (powerOffCommand === 'cec_power_off_tv') ? 'cec_tv_off.sh' : 'cec_power_off_tv';
     const preCommand = receiverElement.dataset.powerOffPreCommand;
     const preDelayMs = parseInt(receiverElement.dataset.powerOffPreDelayMs, 10) || 3000;
-    const rokuTarget = isRokuTarget(receiverElement, deviceIp);
+    const extendedRetry = needsExtendedCecRetry(receiverElement, deviceIp);
 
     function sendPowerOffWithRetry() {
         return sendPowerCommand(deviceIp, powerOffCommand, showNotification)
@@ -420,18 +444,25 @@ function sendConfiguredPowerOff(receiverElement, deviceIp, showNotification = tr
                 return waitMs(1500)
                     .then(() => sendPowerCommand(deviceIp, powerOffCommand, false).catch(() => null))
                     .then(function() {
-                        if (!rokuTarget) {
+                        if (!extendedRetry) {
                             return null;
                         }
 
-                        // Roku TVs can ignore one variant on specific firmware/input states.
-                        // Send both wrapper variants and direct standby twice for max reliability.
+                        // Extended retry: some TVs ignore a single Standby message
+                        // depending on current HDMI input / firmware state.  Send
+                        // both wrapper variants plus the direct CEC binary twice
+                        // for max reliability.
+                        // NOTE: previously sent the uppercase string 'CEC_TV_OFF',
+                        // which is not a valid shell command on the JAP device
+                        // (see sendConfiguredPowerOn).  Replaced with the real
+                        // cec_power_off_tv binary so the retry actually issues a
+                        // CEC Standby frame instead of returning "command not found".
                         return waitMs(1000)
                             .then(() => sendPowerCommand(deviceIp, alternatePowerOffCommand, false).catch(() => null))
                             .then(() => waitMs(1000))
-                            .then(() => sendPowerCommand(deviceIp, 'CEC_TV_OFF', false).catch(() => null))
+                            .then(() => sendPowerCommand(deviceIp, 'cec_power_off_tv', false).catch(() => null))
                             .then(() => waitMs(1200))
-                            .then(() => sendPowerCommand(deviceIp, 'CEC_TV_OFF', false).catch(() => null));
+                            .then(() => sendPowerCommand(deviceIp, 'cec_power_off_tv', false).catch(() => null));
                     })
                     .then(() => response);
             });

@@ -122,17 +122,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['restore_backup'])) {
         }
 
         // Store form data for persistence
-        // Note: We use receiver_power_index[] hidden fields to track which receivers have power enabled
-        // because unchecked checkboxes don't submit values and break array indexing
+        // Note: We use receiver_power_index[] / receiver_extended_retry_index[]
+        // hidden fields to track which receivers have each toggle enabled,
+        // because unchecked checkboxes don't submit values and break array indexing.
         if (isset($_POST['receiver_name'])) {
             $formData['receivers'] = [];
             $powerEnabled = isset($_POST['receiver_power_index']) ? array_flip($_POST['receiver_power_index']) : [];
+            $extendedRetryEnabled = isset($_POST['receiver_extended_retry_index']) ? array_flip($_POST['receiver_extended_retry_index']) : [];
             foreach ($_POST['receiver_name'] as $index => $name) {
                 if (!empty($name)) {
-                    $formData['receivers'][$name] = [
+                    // Preserve any advanced power_* keys from the existing
+                    // RECEIVERS config for this receiver name — the Settings UI
+                    // only exposes show_power + power_extended_retry, but we
+                    // must not silently erase power_on_command, power_off_command,
+                    // power_on_followup_*, power_off_pre_*, etc. that were
+                    // hand-edited in config.php.
+                    $preserved = [];
+                    if (isset($oldReceivers[$name]) && is_array($oldReceivers[$name])) {
+                        foreach ($oldReceivers[$name] as $k => $v) {
+                            if ($k === 'ip' || $k === 'show_power' || $k === 'power_extended_retry') continue;
+                            $preserved[$k] = $v;
+                        }
+                    }
+                    $entry = array_merge($preserved, [
                         'ip' => $_POST['receiver_ip'][$index],
-                        'show_power' => isset($powerEnabled[$index])
-                    ];
+                        'show_power' => isset($powerEnabled[$index]),
+                    ]);
+                    if (isset($extendedRetryEnabled[$index])) {
+                        $entry['power_extended_retry'] = true;
+                    }
+                    $formData['receivers'][$name] = $entry;
                 }
             }
         }
@@ -150,18 +169,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['restore_backup'])) {
 
         if ($section === 'receivers' || $section === 'all') {
             $receivers = [];
-            // Track which indices have power enabled (checkbox workaround)
+            // Track which indices have each toggle enabled (checkbox workaround)
             $powerEnabled = isset($_POST['receiver_power_index']) ? array_flip($_POST['receiver_power_index']) : [];
+            $extendedRetryEnabled = isset($_POST['receiver_extended_retry_index']) ? array_flip($_POST['receiver_extended_retry_index']) : [];
             foreach ($_POST['receiver_name'] as $index => $name) {
                 if (!empty($name) && !empty($_POST['receiver_ip'][$index])) {
                     $ip = filter_var($_POST['receiver_ip'][$index], FILTER_VALIDATE_IP);
                     if (!$ip) {
                         throw new Exception("Invalid IP address for receiver: " . htmlspecialchars($name));
                     }
-                    $receivers[$name] = [
+                    // Carry through any advanced power_* keys that aren't
+                    // exposed in the UI (power_on_command, power_off_command,
+                    // power_on_followup_*, power_off_pre_*, power_on_repeat).
+                    // Without this, saving via the UI would erase CEC config
+                    // that was hand-edited in config.php.
+                    $preserved = [];
+                    if (isset($oldReceivers[$name]) && is_array($oldReceivers[$name])) {
+                        foreach ($oldReceivers[$name] as $k => $v) {
+                            if ($k === 'ip' || $k === 'show_power' || $k === 'power_extended_retry') continue;
+                            $preserved[$k] = $v;
+                        }
+                    }
+                    $entry = array_merge($preserved, [
                         'ip' => $ip,
-                        'show_power' => isset($powerEnabled[$index])
-                    ];
+                        'show_power' => isset($powerEnabled[$index]),
+                    ]);
+                    if (isset($extendedRetryEnabled[$index])) {
+                        $entry['power_extended_retry'] = true;
+                    }
+                    $receivers[$name] = $entry;
                 }
             }
         } else {
@@ -236,10 +272,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['restore_backup'])) {
         $configContent = "<?php\n/**\n * Generated Configuration File\n * Last Updated: " . date('Y-m-d H:i:s') . "\n */\n\n";
 
         $configContent .= "const RECEIVERS = [\n";
+        // Emit ip and show_power first for readability, then any additional
+        // keys (preserved advanced CEC config, power_extended_retry toggle).
         foreach ($receivers as $name => $settings) {
             $configContent .= "    " . var_export($name, true) . " => [\n";
             $configContent .= "        'ip' => " . var_export($settings['ip'], true) . ",\n";
-            $configContent .= "        'show_power' => " . var_export($settings['show_power'], true) . "\n";
+            $configContent .= "        'show_power' => " . var_export($settings['show_power'], true);
+
+            $extraKeys = [];
+            foreach ($settings as $k => $v) {
+                if ($k === 'ip' || $k === 'show_power') continue;
+                $extraKeys[$k] = $v;
+            }
+
+            if (!empty($extraKeys)) {
+                $configContent .= ",\n";
+                $lines = [];
+                foreach ($extraKeys as $k => $v) {
+                    $lines[] = "        " . var_export($k, true) . " => " . var_export($v, true);
+                }
+                $configContent .= implode(",\n", $lines) . "\n";
+            } else {
+                $configContent .= "\n";
+            }
+
             $configContent .= "    ],\n";
         }
         $configContent .= "];\n\n";
@@ -658,6 +714,19 @@ if ($isRootEntry) {
                                 <?php endif; ?>
                                 <label for="receiver_power_<?php echo $receiverIndex; ?>">Show Power Controls</label>
                             </div>
+                            <?php $extendedRetryOn = !empty($settings['power_extended_retry']); ?>
+                            <div class="checkbox-field" title="Send extra CEC retries (direct binary + repeated source selects). Enable for Roku, some Samsung/LG TVs, or any display with flaky CEC.">
+                                <input type="checkbox"
+                                       id="receiver_extended_retry_<?php echo $receiverIndex; ?>"
+                                       class="receiver-extended-retry-checkbox"
+                                       data-index="<?php echo $receiverIndex; ?>"
+                                       onchange="updateExtendedRetryIndex(this)"
+                                       <?php echo $extendedRetryOn ? 'checked' : ''; ?>>
+                                <?php if ($extendedRetryOn): ?>
+                                <input type="hidden" name="receiver_extended_retry_index[]" value="<?php echo $receiverIndex; ?>" class="extended-retry-index-input">
+                                <?php endif; ?>
+                                <label for="receiver_extended_retry_<?php echo $receiverIndex; ?>">Extended CEC Retry</label>
+                            </div>
                             <button type="button" class="remove-button" onclick="removeReceiver(this)">Remove</button>
                         </div>
                         <?php $receiverIndex++; endforeach; ?>
@@ -881,6 +950,25 @@ if ($isRootEntry) {
             }
         }
 
+        function updateExtendedRetryIndex(checkbox) {
+            const index = checkbox.dataset.index;
+            const container = checkbox.closest('.checkbox-field');
+            let hiddenInput = container.querySelector('.extended-retry-index-input');
+
+            if (checkbox.checked) {
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'receiver_extended_retry_index[]';
+                    hiddenInput.className = 'extended-retry-index-input';
+                    hiddenInput.value = index;
+                    container.insertBefore(hiddenInput, checkbox.nextSibling);
+                }
+            } else if (hiddenInput) {
+                hiddenInput.remove();
+            }
+        }
+
         function removeReceiver(button) {
             button.closest('.config-row').remove();
         }
@@ -926,6 +1014,14 @@ if ($isRootEntry) {
                            data-index="${index}"
                            onchange="updatePowerIndex(this)">
                     <label for="receiver_power_${index}">Show Power Controls</label>
+                </div>
+                <div class="checkbox-field" title="Send extra CEC retries (direct binary + repeated source selects). Enable for Roku, some Samsung/LG TVs, or any display with flaky CEC.">
+                    <input type="checkbox"
+                           id="receiver_extended_retry_${index}"
+                           class="receiver-extended-retry-checkbox"
+                           data-index="${index}"
+                           onchange="updateExtendedRetryIndex(this)">
+                    <label for="receiver_extended_retry_${index}">Extended CEC Retry</label>
                 </div>
                 <button type="button" class="remove-button" onclick="removeReceiver(this)">Remove</button>
             `;
