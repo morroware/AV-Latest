@@ -186,7 +186,20 @@ function makeApiCall($method, $deviceIp, $endpoint, $data = null, $contentType =
         $result = curl_exec($ch);
 
         if ($result === false) {
-            throw new Exception('cURL error: ' . curl_error($ch));
+            $errno = curl_errno($ch);
+            $errStr = curl_error($ch);
+            // CURLINFO_CONNECT_TIME is 0.0 when no TCP connection was ever
+            // established (DNS failure, connect refused, connect timeout,
+            // network unreachable).  When we DID connect but the response
+            // was lost or slow, connect_time is > 0 and the command most
+            // likely executed on the device before the transport failure.
+            //
+            // We embed a canonical [UNREACHABLE] marker plus the errno so
+            // callers can distinguish "never reached the device" from
+            // "reached the device but response didn't come back".
+            $connectTime = (float)curl_getinfo($ch, CURLINFO_CONNECT_TIME);
+            $prefix = ($connectTime <= 0.0) ? '[UNREACHABLE] ' : '';
+            throw new Exception($prefix . 'cURL error (' . $errno . '): ' . $errStr);
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

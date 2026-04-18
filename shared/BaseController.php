@@ -174,14 +174,22 @@ class BaseController {
             $response['message'] = "Power command sent successfully.";
         } catch (Exception $e) {
             // Fire-and-forget semantics (matches handleRemoteControlRequest).
-            // Timeouts, connection resets, and empty replies mean the CEC
-            // command was dispatched but the HTTP response was lost or slow.
-            // The only true failure is when the request never reached the
-            // device at all — i.e. it's unreachable on the network.
+            // When a TCP connection was established, the CEC command was
+            // dispatched — any later transport failure (timeout on read,
+            // connection reset, empty reply) means the HTTP response was
+            // lost or slow, NOT that the command failed.  The only true
+            // failure is when we never reached the device: DNS failure,
+            // connect refused, connect timeout, network unreachable.
+            //
+            // makeApiCall() prepends "[UNREACHABLE] " to the exception
+            // message when CURLINFO_CONNECT_TIME was 0 (no TCP connection
+            // ever completed).  We also keep string patterns as a
+            // defense-in-depth fallback in case the connect-time check
+            // misses an edge case (e.g. "Failed to connect to ... port ..."
+            // covers both CURLE_COULDNT_CONNECT and connect-phase
+            // CURLE_OPERATION_TIMEDOUT).
             $msg = $e->getMessage();
-            $isUnreachable = stripos($msg, 'Could not resolve') !== false
-                || stripos($msg, 'Connection refused') !== false
-                || stripos($msg, 'No route to host') !== false;
+            $isUnreachable = $this->isTransportUnreachable($msg);
 
             logMessage("POWER DEBUG [{$deviceIp}]: exception='{$msg}'", 'debug');
 
@@ -402,9 +410,7 @@ class BaseController {
             // device at all (connection refused, DNS failure), meaning
             // fluxhandlerV2.sh never ran.
             $msg = $e->getMessage();
-            $isUnreachable = stripos($msg, 'Could not resolve') !== false
-                || stripos($msg, 'Connection refused') !== false
-                || stripos($msg, 'No route to host') !== false;
+            $isUnreachable = $this->isTransportUnreachable($msg);
 
             if ($isUnreachable) {
                 $response['message'] = "Device unreachable";
@@ -418,6 +424,44 @@ class BaseController {
         }
 
         return $response;
+    }
+
+    /**
+     * Classify a makeApiCall exception message as "device unreachable"
+     * (request never arrived) vs "dispatched but response lost/slow".
+     *
+     * Primary signal: the "[UNREACHABLE]" prefix attached by makeApiCall()
+     * when CURLINFO_CONNECT_TIME was 0 — that's a guaranteed connect-phase
+     * failure.  The string-match list is a defense-in-depth fallback for
+     * callers / cURL builds where the prefix might be absent.
+     *
+     * @param string $msg Exception message
+     * @return bool
+     */
+    protected function isTransportUnreachable($msg) {
+        if (strpos($msg, '[UNREACHABLE]') !== false) {
+            return true;
+        }
+        // "Failed to connect to HOST port N after M ms: ..." covers both
+        // CURLE_COULDNT_CONNECT (7) for connection refused and the
+        // connect-phase variant of CURLE_OPERATION_TIMEDOUT (28).
+        $needles = [
+            'Could not resolve',
+            'Connection refused',
+            'No route to host',
+            'Failed to connect',
+            'Couldn\'t connect to server',
+            'Network is unreachable',
+            'Host is unreachable',
+            'Host is down',
+            'Name or service not known',
+        ];
+        foreach ($needles as $needle) {
+            if (stripos($msg, $needle) !== false) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
