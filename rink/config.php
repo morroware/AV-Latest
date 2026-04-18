@@ -5,11 +5,11 @@
  */
 
 const RECEIVERS = [
-    'Rink Music' => [
+    'Rink Music RX' => [
         'ip' => '192.168.8.35',
         'show_power' => false
     ],
-    'Rink Video Wall' => [
+    'Rink Video RX' => [
         'ip' => '192.168.8.29',
         'show_power' => false
     ],

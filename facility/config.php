@@ -5,7 +5,7 @@
  */
 
 const RECEIVERS = [
-    'Arcade, IPK, Ballocity and Jesters Zone Pro ' => [
+    'Facility Zone Pro' => [
         'ip' => '192.168.8.31',
         'show_power' => false
     ],

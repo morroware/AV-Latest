@@ -17,11 +17,11 @@ const RECEIVERS = [
         'ip' => '192.168.8.32',
         'show_power' => true
     ],
-    'Bowling Bar TV 4' => [
+    'Bowling Bar TV' => [
         'ip' => '192.168.8.41',
         'show_power' => true
     ],
-    'Billiards TV 1' => [
+    'NeoVerse 5' => [
         'ip' => '192.168.8.23',
         'show_power' => true,
         'power_on_command' => 'cec_power_on_tv',
@@ -48,7 +48,7 @@ const RECEIVERS = [
         'ip' => '192.168.8.22',
         'show_power' => false
     ],
-    'Axe/Billiards Music' => [
+    'Axe Billiards Music' => [
         'ip' => '192.168.8.38',
         'show_power' => false
     ],

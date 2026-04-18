@@ -5,11 +5,11 @@
  */
 
 const RECEIVERS = [
-    'Bar TV Left' => [
+    'Attic RX 4' => [
         'ip' => '192.168.8.33',
         'show_power' => true
     ],
-    'Bar TV Right' => [
+    'NeoVerse 4' => [
         'ip' => '192.168.8.37',
         'show_power' => true
     ],
